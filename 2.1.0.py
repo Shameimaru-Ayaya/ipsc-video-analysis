@@ -32,7 +32,7 @@ class VideoProcessor:
             os.makedirs(self.output_dir)
 
         if not self.cap.isOpened():
-            raise ValueError(f"无法打开视频文件: {self.video_path}")
+            raise ValueError(f"Failed to open input video: {self.video_path}")
 
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)
         self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -382,9 +382,9 @@ class VideoProcessor:
         print("Processing complete. Output saved.")
 
 if __name__ == "__main__":
-    video_path = r'lpz/4-OldCM_Old/20241121 DrugTest_Loratadine/Sample2_C3_2833.avi'
-    output_dir = r"test/2833"
-    roi_x, roi_y, roi_width, roi_height = 409,462,88,101
+    video_path = os.path.normpath(os.path.expanduser(input('Input video path >>>').strip().strip('"\'')))
+    output_dir = os.path.normpath(os.path.expanduser(input('Output directory >>>').strip().strip('"\'')))
+    roi_x, roi_y, roi_width, roi_height = map(int, input('ROI parameters: x y w h (separated by spaces) >>> ').split())
 
     processor = VideoProcessor(video_path, output_dir, roi_x, roi_y, roi_width, roi_height)
     processor.process_video()
