@@ -11,6 +11,7 @@ Created on Mon Jan 13 12:16:50 2025
 import sys
 import os
 import cv2
+import subprocess
 import numpy as np
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QRect, QPoint, QSize, QTime
 from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen, QCursor
@@ -84,13 +85,14 @@ class VideoProcessor(QThread):
 
 # 视频显示区域，同时支持ROI框的创建、移动和缩放（带8个手柄）
 class VideoLabel(QLabel):
+    clicked = pyqtSignal()
     roi_selected = pyqtSignal(QRect)
     HANDLE_SIZE = 10  # 调整手柄尺寸
 
     def __init__(self):
         super().__init__()
         self.setAlignment(Qt.AlignCenter)
-        self.setText("拖放视频文件到这里")
+        self.setText("拖放视频文件到这里，或者单击这里选择一个文件")
         self.setMinimumSize(640, 480)
         # ROI变量
         self.drag_mode = None   # "create"、"move" 或具体手柄名称，如"topleft", "top", "topright", etc.
@@ -161,6 +163,9 @@ class VideoLabel(QLabel):
         return None
 
     def mousePressEvent(self, event):
+        if not self.pixmap():
+            self.clicked.emit()
+            return
         if not self.pixmap() or not self.display_rect.contains(event.pos()):
             return
         handle = self.handle_at(event.pos())
@@ -259,6 +264,7 @@ class VideoLabel(QLabel):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.last_output_path = ""
         self.setWindowTitle("视频ROI裁剪工具")
         self.setAcceptDrops(True)
         self.video_path = ""
@@ -277,6 +283,7 @@ class MainWindow(QMainWindow):
         # 视频显示区域
         self.video_label = VideoLabel()
         self.video_label.roi_selected.connect(self.update_roi)
+        self.video_label.clicked.connect(self.select_video_file)
 
         # 控制组件
         self.progress_bar = QProgressBar()
@@ -288,21 +295,41 @@ class MainWindow(QMainWindow):
         self.time_label = QLabel("00:00/00:00")  # 显示视频当前时间/总时长
 
         # 按钮组件
-        self.select_video_btn = QPushButton("选择视频文件")
+        self.select_video_btn = QPushButton("重新选择视频")
         self.select_video_btn.clicked.connect(self.select_video_file)
+        self.select_video_btn.setEnabled(False)  # 初始不可用
 
-        # 输出目录与格式下拉菜单放在同一水平布局中
+        # 重新选择、输出目录与格式下拉菜单放在同一水平布局中
         self.select_dir_btn = QPushButton("选择输出目录")
         self.select_dir_btn.clicked.connect(self.select_output_dir)
         self.format_combo = QComboBox()
         self.format_combo.addItems(["MP4", "AVI", "MOV", "MKV"])
+
+        # 创建包含标签和格式下拉菜单的子布局
+        format_layout = QHBoxLayout()
+        format_label = QLabel("输出格式：")
+        format_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)  # 右对齐
+        format_layout.addWidget(format_label)
+        format_layout.addWidget(self.format_combo)
+        format_layout.setSpacing(5)  # 设置标签与下拉框间距
+
         dir_layout = QHBoxLayout()
+        dir_layout.addWidget(self.select_video_btn)
         dir_layout.addWidget(self.select_dir_btn)
-        dir_layout.addWidget(self.format_combo)
+        dir_layout.addLayout(format_layout)# 添加子布局
 
         self.process_btn = QPushButton("开始处理")
         self.process_btn.setEnabled(False)
         self.process_btn.clicked.connect(self.start_processing)
+
+        self.open_output_btn = QPushButton("打开输出目录")
+        self.open_output_btn.setEnabled(False)
+        self.open_output_btn.clicked.connect(self.open_output_directory)
+
+        # 开始处理、打开目录在同一水平布局中
+        process_layout = QHBoxLayout()
+        process_layout.addWidget(self.process_btn)
+        process_layout.addWidget(self.open_output_btn)
 
         # 播放控制
         self.play_pause_btn = QPushButton("播放")
@@ -312,8 +339,9 @@ class MainWindow(QMainWindow):
         self.slider.setEnabled(False)
         self.slider.sliderReleased.connect(self.slider_released)
 
-        # 播放进度条与时间标签在同一水平布局中
+        # 播放按钮、进度条与时间标签在同一水平布局中
         play_layout = QHBoxLayout()
+        play_layout.addWidget(self.play_pause_btn)
         play_layout.addWidget(self.slider)
         play_layout.addWidget(self.time_label)
 
@@ -324,13 +352,11 @@ class MainWindow(QMainWindow):
 
         # 控制区总布局
         control_layout = QVBoxLayout()
-        control_layout.addWidget(self.select_video_btn)
-        control_layout.addLayout(dir_layout)
-        control_layout.addWidget(self.process_btn)
-        control_layout.addWidget(self.play_pause_btn)
-        control_layout.addLayout(play_layout)
-        control_layout.addLayout(progress_layout)
-        control_layout.addWidget(self.status_label)
+        control_layout.addLayout(play_layout) # 播放（播放按钮、时间轴、时间标签）
+        control_layout.addLayout(dir_layout) # 路径（输入路径、输出目录、文件格式）
+        control_layout.addLayout(process_layout) # 处理（开始处理、打开目录）
+        control_layout.addLayout(progress_layout) # 进程（进度条、进度百分比）
+        control_layout.addWidget(self.status_label) # 状态栏
 
         main_layout = QVBoxLayout()
         main_layout.addWidget(self.video_label)
@@ -387,6 +413,7 @@ class MainWindow(QMainWindow):
         self.play_pause_btn.setEnabled(True)
         self.slider.setEnabled(True)
         self.process_btn.setEnabled(True)
+        self.select_video_btn.setEnabled(True)
         self.status_label.setText(f"已加载视频：{os.path.basename(path)}")
 
     def update_time_label(self, current_frame):
@@ -458,6 +485,10 @@ class MainWindow(QMainWindow):
             self.cap = None
         self.play_pause_btn.setEnabled(False)
         self.slider.setEnabled(False)
+        self.select_video_btn.setEnabled(False)
+        self.select_dir_btn.setEnabled(False)
+        self.format_combo.setEnabled(False)
+        self.open_output_btn.setEnabled(False)
 
         # 创建处理线程，传入当前选择的视频格式
         self.processing_thread = VideoProcessor(self.video_path, self.output_dir, self.roi_rect, self.format_combo.currentText())
@@ -478,17 +509,26 @@ class MainWindow(QMainWindow):
         self.progress_label.hide()
         self.process_btn.setEnabled(True)
 
+        # 更新输出路径和按钮状态
+        if result and not result.startswith("错误:"):
+            self.last_output_path = result
+            self.open_output_btn.setEnabled(True)
+        else:
+            self.open_output_btn.setEnabled(False)
+
         if self.cap:
             self.cap.release()
             self.cap = None
 
         self.video_label.clear()
-        self.video_label.setText("拖放视频文件到这里")
+        self.video_label.setText("拖放视频文件到这里，或者单击这里选择一个文件")
         self.video_label.permanent_roi = QRect()
 
+        self.select_dir_btn.setEnabled(True)
         self.play_pause_btn.setEnabled(False)
         self.slider.setEnabled(False)
         self.process_btn.setEnabled(False)
+        self.select_video_btn.setEnabled(False)
         self.slider.setValue(0)
 
         if result.startswith("错误:"):
@@ -504,6 +544,38 @@ class MainWindow(QMainWindow):
         self.video_path = ""
         self.roi_rect = QRect()
         self.video_label.update()
+        self.select_dir_btn.setEnabled(True)
+        self.select_video_btn.setEnabled(False)
+
+    def open_output_directory(self):
+        if not self.last_output_path:
+            return
+
+        # 获取文件路径和目录路径
+        file_path = os.path.normpath(self.last_output_path)
+        dir_path = os.path.dirname(file_path)
+
+        # 处理不同操作系统
+        if sys.platform == "win32":
+            # Windows: 打开目录并选中文件
+            if os.path.exists(file_path):
+                os.startfile(dir_path)
+                # 使用explorer选中文件需要额外处理
+                subprocess.run(f'explorer /select,"{file_path}"', shell=True)
+            else:
+                os.startfile(dir_path)
+        elif sys.platform == "darwin":
+            # macOS: 打开目录并选中文件
+            if os.path.exists(file_path):
+                subprocess.run(["open", "-R", file_path])
+            else:
+                subprocess.run(["open", dir_path])
+        else:
+            # Linux: 使用文件管理器打开
+            if os.path.exists(file_path):
+                subprocess.run(["xdg-open", dir_path])
+            else:
+                subprocess.run(["xdg-open", dir_path])
 
     def closeEvent(self, event):
         if self.processing_thread and self.processing_thread.isRunning():
