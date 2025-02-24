@@ -12,9 +12,8 @@ import sys
 import os
 import cv2
 import subprocess
-import numpy as np
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QRect, QPoint, QSize, QTime
-from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen, QCursor
+from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QLabel, QPushButton,
                              QFileDialog, QVBoxLayout, QWidget, QProgressBar, QSlider,
                              QHBoxLayout, QComboBox)
