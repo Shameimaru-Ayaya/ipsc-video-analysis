@@ -3,7 +3,9 @@
 """
 Created on Mon Jan 13 12:16:50 2025
 
-@author: GitHub@KirisameMarisa-DAZE (master.spark.kirisame.marisa.daze@gmail.com). All rights reserved. © 2021~2025
+@author:
+    GitHub@KirisameMarisa-DAZE (master.spark.kirisame.marisa.daze@gmail.com)
+    All rights reserved. © 2021~2025
 """
 
 import sys
@@ -13,7 +15,7 @@ import numpy as np
 from PyQt5.QtCore import Qt, QTimer, QThread, pyqtSignal, QRect, QPoint, QSize
 from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QLabel, QPushButton,
-                             QFileDialog, QVBoxLayout, QWidget, QProgressBar)
+                             QFileDialog, QVBoxLayout, QWidget, QProgressBar, QSlider)
 
 class VideoProcessor(QThread):
     progress_updated = pyqtSignal(int)
@@ -28,18 +30,23 @@ class VideoProcessor(QThread):
 
     def run(self):
         try:
+            print("Processing started")  # 调试输出
             cap = cv2.VideoCapture(self.input_path)
             if not cap.isOpened():
                 raise ValueError("无法打开输入视频")
 
             total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            if total_frames <= 0:
+                raise ValueError("视频帧数为0")
             fps = cap.get(cv2.CAP_PROP_FPS)
+            if fps == 0:
+                fps = 25
             base_name = os.path.splitext(os.path.basename(self.input_path))[0]
             output_path = os.path.join(self.output_dir, f"{base_name}_cropped.mp4")
 
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             out = cv2.VideoWriter(output_path, fourcc, fps,
-                                (self.roi_rect.width(), self.roi_rect.height()))
+                                  (self.roi_rect.width(), self.roi_rect.height()))
 
             for frame_num in range(total_frames):
                 if self.cancel_flag:
@@ -47,19 +54,23 @@ class VideoProcessor(QThread):
 
                 ret, frame = cap.read()
                 if not ret:
+                    print(f"读取帧失败，退出于第 {frame_num} 帧")
                     break
 
-                roi_frame = frame[self.roi_rect.y():self.roi_rect.y()+self.roi_rect.height(),
-                                self.roi_rect.x():self.roi_rect.x()+self.roi_rect.width()]
+                # 使用ROI参数裁剪视频帧
+                x, y, w, h = self.roi_rect.x(), self.roi_rect.y(), self.roi_rect.width(), self.roi_rect.height()
+                roi_frame = frame[y:y+h, x:x+w]
                 out.write(roi_frame)
 
                 self.progress_updated.emit(int((frame_num+1)/total_frames*100))
 
             cap.release()
             out.release()
+            print("Processing finished")
             self.finished.emit(output_path if not self.cancel_flag else "")
 
         except Exception as e:
+            print(f"Processing error: {str(e)}")
             self.finished.emit(f"错误: {str(e)}")
 
     def cancel(self):
@@ -76,6 +87,7 @@ class VideoLabel(QLabel):
         self.drag_active = False
         self.start_point = QPoint()
         self.current_roi = QRect()
+        self.permanent_roi = QRect()  # 持久保存ROI框
         self.original_size = QSize()
         self.display_rect = QRect()
         self.pen = QPen(Qt.red, 2, Qt.SolidLine)
@@ -85,7 +97,7 @@ class VideoLabel(QLabel):
         scaled_pix = pixmap.scaled(self.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.setPixmap(scaled_pix)
 
-        # 计算显示区域的实际位置
+        # 计算显示区域的位置和大小
         pw = scaled_pix.width()
         ph = scaled_pix.height()
         x = (self.width() - pw) // 2
@@ -113,8 +125,8 @@ class VideoLabel(QLabel):
     def mouseReleaseEvent(self, event):
         if self.drag_active:
             self.drag_active = False
+            self.permanent_roi = self.current_roi  # 保存持久ROI
 
-            # 坐标转换计算
             scale_x = self.original_size.width() / self.display_rect.width()
             scale_y = self.original_size.height() / self.display_rect.height()
 
@@ -129,10 +141,14 @@ class VideoLabel(QLabel):
 
     def paintEvent(self, event):
         super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setPen(self.pen)
+        # 正在绘制时显示当前ROI，否则显示持久ROI
         if self.drag_active and not self.current_roi.isNull():
-            painter = QPainter(self)
-            painter.setPen(self.pen)
             adjusted_rect = self.current_roi.translated(self.display_rect.topLeft())
+            painter.drawRect(adjusted_rect)
+        elif not self.permanent_roi.isNull():
+            adjusted_rect = self.permanent_roi.translated(self.display_rect.topLeft())
             painter.drawRect(adjusted_rect)
 
     def resizeEvent(self, event):
@@ -153,6 +169,9 @@ class MainWindow(QMainWindow):
         self.video_path = ""
         self.roi_rect = QRect()
         self.processing_thread = None
+        self.cap = None  # 用于视频预览
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_frame)
 
         # UI组件
         self.video_label = VideoLabel()
@@ -162,11 +181,22 @@ class MainWindow(QMainWindow):
         self.select_dir_btn = QPushButton("选择输出目录")
         self.process_btn = QPushButton("开始处理")
         self.process_btn.setEnabled(False)
+        self.process_btn.clicked.connect(self.start_processing)
+
+        # 播放/暂停按钮和视频进度条
+        self.play_pause_btn = QPushButton("播放")
+        self.play_pause_btn.setEnabled(False)
+        self.play_pause_btn.clicked.connect(self.toggle_play_pause)
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setEnabled(False)
+        self.slider.sliderReleased.connect(self.slider_released)
 
         # 布局
         control_layout = QVBoxLayout()
         control_layout.addWidget(self.select_dir_btn)
         control_layout.addWidget(self.process_btn)
+        control_layout.addWidget(self.play_pause_btn)
+        control_layout.addWidget(self.slider)
         control_layout.addWidget(self.status_label)
         control_layout.addWidget(self.progress_bar)
 
@@ -180,7 +210,6 @@ class MainWindow(QMainWindow):
 
         # 信号连接
         self.select_dir_btn.clicked.connect(self.select_output_dir)
-        self.process_btn.clicked.connect(self.start_processing)
         self.video_label.roi_selected.connect(self.update_roi)
         self.output_dir = os.path.expanduser("~/Desktop")
 
@@ -197,12 +226,23 @@ class MainWindow(QMainWindow):
 
     def load_video(self, path):
         self.video_path = path
-        cap = cv2.VideoCapture(path)
-        if not cap.isOpened():
+        if self.cap:
+            self.cap.release()
+        self.cap = cv2.VideoCapture(path)
+        if not self.cap.isOpened():
             self.status_label.setText("无法打开视频文件")
             return
 
-        ret, frame = cap.read()
+        fps = self.cap.get(cv2.CAP_PROP_FPS)
+        if fps == 0:
+            fps = 25
+        total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        interval = int(1000 / fps)
+        self.timer.setInterval(interval)
+        self.slider.setMinimum(0)
+        self.slider.setMaximum(total_frames - 1)
+
+        ret, frame = self.cap.read()
         if not ret:
             self.status_label.setText("无法读取视频帧")
             return
@@ -212,11 +252,43 @@ class MainWindow(QMainWindow):
         bytes_per_line = ch * w
         q_img = QImage(frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(q_img)
-
         self.video_label.set_video_frame(pixmap, QSize(w, h))
-        cap.release()
+
+        # 重置视频到第一帧
+        self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+        self.play_pause_btn.setEnabled(True)
+        self.slider.setEnabled(True)
         self.process_btn.setEnabled(True)
         self.status_label.setText(f"已加载视频：{os.path.basename(path)}")
+
+    def toggle_play_pause(self):
+        if self.timer.isActive():
+            self.timer.stop()
+            self.play_pause_btn.setText("播放")
+        else:
+            self.timer.start()
+            self.play_pause_btn.setText("暂停")
+
+    def update_frame(self):
+        if self.cap:
+            ret, frame = self.cap.read()
+            if ret:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                h, w, ch = frame.shape
+                bytes_per_line = ch * w
+                q_img = QImage(frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
+                pixmap = QPixmap.fromImage(q_img)
+                self.video_label.set_video_frame(pixmap, QSize(w, h))
+                current_frame = int(self.cap.get(cv2.CAP_PROP_POS_FRAMES))
+                self.slider.setValue(current_frame)
+            else:
+                self.timer.stop()
+
+    def slider_released(self):
+        if self.cap:
+            frame_number = self.slider.value()
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+            self.update_frame()
 
     def select_output_dir(self):
         dir_path = QFileDialog.getExistingDirectory(self, "选择输出目录", self.output_dir)
@@ -230,9 +302,19 @@ class MainWindow(QMainWindow):
             f"已选择ROI区域：X={roi.x()}, Y={roi.y()}, {roi.width()}x{roi.height()}")
 
     def start_processing(self):
+        print("start_processing triggered")  # 调试输出，确认按钮点击
         if not self.roi_rect.isValid():
             self.status_label.setText("请先选择有效的ROI区域")
             return
+
+        # 停止预览并释放资源
+        if self.timer.isActive():
+            self.timer.stop()
+        if self.cap:
+            self.cap.release()
+            self.cap = None
+        self.play_pause_btn.setEnabled(False)
+        self.slider.setEnabled(False)
 
         self.processing_thread = VideoProcessor(self.video_path, self.output_dir, self.roi_rect)
         self.processing_thread.progress_updated.connect(self.update_progress)
@@ -248,7 +330,6 @@ class MainWindow(QMainWindow):
     def processing_finished(self, result):
         self.progress_bar.hide()
         self.process_btn.setEnabled(True)
-
         if result.startswith("错误:"):
             self.status_label.setText(result)
         elif result:
@@ -260,6 +341,8 @@ class MainWindow(QMainWindow):
         if self.processing_thread and self.processing_thread.isRunning():
             self.processing_thread.cancel()
             self.processing_thread.wait()
+        if self.cap:
+            self.cap.release()
         event.accept()
 
 if __name__ == "__main__":
