@@ -3,7 +3,7 @@
 """
 Created on Mon Jan 13 11:48:18 2025
 
-@author: page (shiki.no.omusubi@gmail.com). All rights reserved. © 2021~2025
+@author: GitHub@KirisameMarisa-DAZE (master.spark.kirisame.marisa.daze@gmail.com). All rights reserved. © 2021~2025
 
 面向对象版本，保留所有功能并修正位移计算、振幅分析，以及检测频率方差的突然增大。
 """
