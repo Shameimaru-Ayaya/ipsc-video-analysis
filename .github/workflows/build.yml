@@ -70,14 +70,19 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install pywin32
+
+      - name: Set FFmpeg Path
+        run: |
+          $ffmpegPath = if ("${{ matrix.arch }}" -eq "x86") { "${{ needs.prepare-deps.outputs.win-x86-ffmpeg }}" } else { "${{ needs.prepare-deps.outputs.win-x64-ffmpeg }}" }
+          echo "FFMPEG_PATH=$ffmpegPath" >> $env:GITHUB_ENV
       
       - name: Build EXE
         run: |
-          pyinstaller --noconfirm --onefile --windowed ^
-            --add-data "${{ matrix.arch == 'x86' && needs.prepare-deps.outputs.win-x86-ffmpeg || needs.prepare-deps.outputs.win-x64-ffmpeg }};." ^
-            --hidden-import "cv2" ^
-            --icon assets/cut.ico ^
-            --name VideoCropper_Win_${{ matrix.arch }} ^
+          pyinstaller --noconfirm --onefile --windowed `
+            --add-data "$env:FFMPEG_PATH;." `
+            --hidden-import "cv2" `
+            --icon assets/cut.ico `
+            --name "VideoCropper_Win_${{ matrix.arch }}" `
             cut.py
       
       - uses: actions/upload-artifact@v4
@@ -99,8 +104,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgl1 libglx0 libsm6 libxext6 mesa-utils
       
+      - name: Install Xvfb and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb mesa-utils
+
+      - name: Start Xvfb
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+
       - name: Verify OpenGL
-        run: glxinfo | grep "OpenGL version"
+        run: |
+          export DISPLAY=${{ env.DISPLAY }}
+          glxinfo | grep "OpenGL version"
       
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -134,11 +151,19 @@ jobs:
         with:
           python-version: '3.11'
       
+      - name: Install PyInstaller
+        run: |
+          if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
+            arch -x86_64 pip install pyinstaller
+          else
+            pip install pyinstaller
+          fi
+
       - name: Build macOS Bundle
         run: |
           # 根据架构选择构建方式
-          if [[ "${{ matrix.arch }}" == "arm64" ]]; then
-            arch -x86_64 pyinstaller --noconfirm --windowed --onefile \
+          if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
+            arch -x86_64 $(which python) -m pyinstaller --noconfirm --windowed --onefile \
               --add-data "${{ needs.prepare-deps.outputs.mac-ffmpeg }}:." \
               --osx-bundle-identifier com.yourcompany.videocropper \
               --hidden-import "cv2" \
