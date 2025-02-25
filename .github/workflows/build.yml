@@ -70,7 +70,7 @@ jobs:
       - name: Build EXE
         run: |
           pyinstaller --noconfirm --onefile --windowed ^
-            --add-data "${{ needs.prepare-deps.outputs.win-${{ matrix.arch }}-ffmpeg }};." ^
+            --add-data "${{ matrix.arch == 'x86' && needs.prepare-deps.outputs.win-x86-ffmpeg || needs.prepare-deps.outputs.win-x64-ffmpeg }};." ^
             --hidden-import "cv2" ^
             --icon assets/cut.ico ^
             --name VideoCropper_Win_${{ matrix.arch }} ^
@@ -102,7 +102,7 @@ jobs:
       - name: Build AppImage
         run: |
           pyinstaller --noconfirm --onefile ^
-            --add-data "${{ needs.prepare-deps.outputs.linux-${{ matrix.arch }}-ffmpeg }}:." ^
+            --add-data "${{ matrix.arch == 'x86' && needs.prepare-deps.outputs.linux-x86-ffmpeg || needs.prepare-deps.outputs.linux-x64-ffmpeg }}:." ^
             --hidden-import "cv2" ^
             --name VideoCropper_Linux_${{ matrix.arch }} ^
             cut.py
@@ -130,7 +130,7 @@ jobs:
       - name: Build App Bundle
         run: |
           pyinstaller --noconfirm --windowed --onefile \
-            --add-data "${{ needs.prepare-deps.outputs.mac-${{ matrix.arch }}-ffmpeg }}:." \
+            --add-data "${{ matrix.arch == 'arm64' && needs.prepare-deps.outputs.mac-arm-ffmpeg || needs.prepare-deps.outputs.mac-intel-ffmpeg }}:." \
             --osx-bundle-identifier com.yourcompany.videocropper \
             --hidden-import "cv2" ^
             --icon assets/cut.icns \
