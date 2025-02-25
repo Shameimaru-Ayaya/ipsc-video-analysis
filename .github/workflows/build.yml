@@ -325,6 +325,6 @@ jobs:
             artifacts/Windows_x64/VideoCropper_Win_x64.exe
             artifacts/Linux_x86/VideoCropper_Linux_x86
             artifacts/Linux_x64/VideoCropper_Linux_x64
-            artifacts/macOS_Universal/VideoCropper.dmg
+            artifacts/macOS_Universal/*
             artifacts/macOS_arm64/*
             artifacts/macOS_x86_64/*
