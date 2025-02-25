@@ -291,17 +291,6 @@ jobs:
           name: macOS_Universal
           path: artifacts/macOS_Universal
 
-      - name: Check if tag exists
-        id: check-tag
-        run: |
-          if git rev-parse "v${{ github.run_number }}" >/dev/null 2>&1; then
-            echo "Tag v${{ github.run_number }} already exists. Deleting..."
-            git tag -d "v${{ github.run_number }}"
-            git push origin ":refs/tags/v${{ github.run_number }}"
-          else
-            echo "Tag v${{ github.run_number }} does not exist."
-          fi
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         env:
@@ -319,4 +308,3 @@ jobs:
             artifacts/Linux_x86/VideoCropper_Linux_x86
             artifacts/Linux_x64/VideoCropper_Linux_x64
             artifacts/macOS_Universal/VideoCropper.dmg
-          retries: 5  # 增加重试次数
