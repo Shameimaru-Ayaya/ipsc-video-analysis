@@ -263,7 +263,7 @@ jobs:
           path: VideoCropper.dmg
 
   publish-release:
-    needs: [build-windows, build-linux, create-dmg]
+    needs: [build-windows, build-linux, create-dmg, build-macos]
     runs-on: ubuntu-latest
     steps:
       - name: Download Windows Artifacts
@@ -294,6 +294,18 @@ jobs:
           name: macOS_Universal
           path: artifacts/macOS_Universal
 
+      - name: Download macOS arm64
+        uses: actions/download-artifact@v4
+        with:
+          name: macOS_arm64
+          path: artifacts/macOS_arm64
+
+      - name: Download macOS x86_64
+        uses: actions/download-artifact@v4
+        with:
+          name: macOS_x86_64
+          path: artifacts/macOS_x86_64
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         env:
@@ -311,3 +323,5 @@ jobs:
             artifacts/Linux_x86/VideoCropper_Linux_x86
             artifacts/Linux_x64/VideoCropper_Linux_x64
             artifacts/macOS_Universal/VideoCropper.dmg
+            artifacts/macOS_Universal/macOS_arm64.app
+            artifacts/macOS_Universal/macOS_x86_64.app
