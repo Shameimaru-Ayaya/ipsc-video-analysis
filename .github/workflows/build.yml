@@ -305,8 +305,9 @@ jobs:
       - name: Download macOS*
         uses: actions/download-artifact@v4
         with:
-          name: macOS*
+          pattern: macOS*
           path: artifacts/macOS_x86_64
+          merge-multiple: true
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
