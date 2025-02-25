@@ -80,7 +80,7 @@ jobs:
             --name VideoCropper_Win_${{ matrix.arch }} ^
             cut.py
       
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: Windows_${{ matrix.arch }}
           path: dist/
@@ -111,7 +111,7 @@ jobs:
             --name VideoCropper_Linux_${{ matrix.arch }} \
             cut.py
       
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: Linux_${{ matrix.arch }}
           path: dist/
@@ -151,7 +151,7 @@ jobs:
               cut.py
           fi
       
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: macOS_${{ matrix.arch }}
           path: dist/VideoCropper_macOS_${{ matrix.arch }}.app
@@ -160,9 +160,11 @@ jobs:
     needs: build-macos
     runs-on: macos-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
+          pattern: macOS_*
           path: artifacts
+          merge-multiple: true
       
       - name: Create Universal DMG
         run: |
@@ -181,7 +183,7 @@ jobs:
             -srcfolder VideoCropper.app \
             -ov -format UDZO VideoCropper.dmg
       
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: macOS_Universal
           path: VideoCropper.dmg
@@ -190,9 +192,11 @@ jobs:
     needs: [build-windows, build-linux, create-dmg]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
+          pattern: '*'
           path: artifacts
+          merge-multiple: true
       
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
