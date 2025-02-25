@@ -23,10 +23,10 @@ jobs:
           mkdir -p ffmpeg/{win-x86,win-x64,linux-x86,linux-x64,mac-arm,mac-intel}
 
           # Windows架构分离
-          wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x86.zip
-          unzip -j ffmpeg-win-x86.zip "ffmpeg-*-essentials_build/bin/ffmpeg.exe" -d ffmpeg/win-x86/
-          wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x64.zip
-          unzip -j ffmpeg-win-x64.zip "*x64/bin/ffmpeg.exe" -d ffmpeg/win-x64/
+          wget -O ffmpeg-win-x86.zip "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-02-25-12-00/ffmpeg-win32-static.zip"
+          unzip -j ffmpeg-win-x86.zip "ffmpeg.exe" -d ffmpeg/win-x86/
+          wget -O ffmpeg-win-x64.zip "https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2025-02-25-12-00/ffmpeg-win64-static.zip"
+          unzip -j ffmpeg-win-x64.zip "ffmpeg.exe" -d ffmpeg/win-x64/
 
           # Linux架构分离
           wget https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-i686-static.tar.xz -O ffmpeg-linux-x86.tar.xz
