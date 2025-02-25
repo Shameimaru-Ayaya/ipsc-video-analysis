@@ -6,53 +6,51 @@ on:
   release:
     types: [ published ]
 
-# 如果需要提前准备多架构 FFmpeg，可启用该部分
-# jobs:
-#   prepare-deps:
-#     runs-on: ubuntu-latest
-#     outputs:
-#       win-x86-ffmpeg: ${{ steps.prepare.outputs['win-x86-path'] }}
-#       win-x64-ffmpeg: ${{ steps.prepare.outputs['win-x64-path'] }}
-#       linux-x86-ffmpeg: ${{ steps.prepare.outputs['linux-x86-path'] }}
-#       linux-x64-ffmpeg: ${{ steps.prepare.outputs['linux-x64-path'] }}
-#       mac-ffmpeg: ${{ steps.prepare.outputs['mac-path'] }}
-#     steps:
-#       - name: Prepare multi-arch FFmpeg
-#         id: prepare
-#         run: |
-#           mkdir -p ffmpeg/{win-x86,win-x64,linux-x86,linux-x64,mac}
-#
-#           # Windows架构分离
-#           wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x86.zip
-#           unzip -j ffmpeg-win-x86.zip "ffmpeg-*-essentials_build/bin/ffmpeg.exe" -d ffmpeg/win-x86/
-#           wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x64.zip
-#           unzip -j ffmpeg-win-x64.zip "ffmpeg-*-essentials_build/bin/ffmpeg.exe" -d ffmpeg/win-x64/
-#
-#           # Linux架构分离
-#           wget https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-i686-static.tar.xz -O ffmpeg-linux-x86.tar.xz
-#           tar -xf ffmpeg-linux-x86.tar.xz --strip-components=1 -C ffmpeg/linux-x86/
-#           wget https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz -O ffmpeg-linux-x64.tar.xz
-#           tar -xf ffmpeg-linux-x64.tar.xz --strip-components=1 -C ffmpeg/linux-x64/
-#
-#           # macOS（使用动态通配符）
-#           wget --trust-server-names -O ffmpeg-mac.zip "https://evermeet.cx/ffmpeg/get/ffmpeg/zip"
-#           unzip -j ffmpeg-mac.zip -d ffmpeg/mac/
-#
-#           echo "win-x86-path=ffmpeg/win-x86/ffmpeg.exe" >> $GITHUB_OUTPUT
-#           echo "win-x64-path=ffmpeg/win-x64/ffmpeg.exe" >> $GITHUB_OUTPUT
-#           echo "linux-x86-path=ffmpeg/linux-x86/ffmpeg" >> $GITHUB_OUTPUT
-#           echo "linux-x64-path=ffmpeg/linux-x64/ffmpeg" >> $GITHUB_OUTPUT
-#           # 移除 macOS 隔离属性
-#           if [ -f /usr/bin/xattr ]; then
-#             /usr/bin/xattr -dr com.apple.quarantine ffmpeg/mac/ffmpeg
-#           else
-#             echo "xattr not found, using fallback..."
-#             mv ffmpeg/mac/ffmpeg ffmpeg/mac/ffmpeg.bin
-#             chmod +x ffmpeg/mac/ffmpeg.bin
-#           fi
-#           echo "mac-path=ffmpeg/mac/ffmpeg" >> $GITHUB_OUTPUT
-
 jobs:
+#  prepare-deps:
+#    runs-on: ubuntu-latest
+#    outputs:
+#      win-x86-ffmpeg: ${{ steps.prepare.outputs.win-x86-path }}
+#      win-x64-ffmpeg: ${{ steps.prepare.outputs.win-x64-path }}
+#      linux-x86-ffmpeg: ${{ steps.prepare.outputs.linux-x86-path }}
+#      linux-x64-ffmpeg: ${{ steps.prepare.outputs.linux-x64-path }}
+#      mac-ffmpeg: ${{ steps.prepare.outputs.mac-path }}
+#    steps:
+#      - name: Prepare multi-arch FFmpeg
+#        id: prepare
+#        run: |
+#          mkdir -p ffmpeg/{win-x86,win-x64,linux-x86,linux-x64,mac}
+#
+#          # Windows架构分离
+#          wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x86.zip
+#          unzip -j ffmpeg-win-x86.zip "ffmpeg-*-essentials_build/bin/ffmpeg.exe" -d ffmpeg/win-x86/
+#          wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x64.zip
+#          unzip -j ffmpeg-win-x64.zip "ffmpeg-*-essentials_build/bin/ffmpeg.exe" -d ffmpeg/win-x64/
+#
+#          # Linux架构分离
+#          wget https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-i686-static.tar.xz -O ffmpeg-linux-x86.tar.xz
+#          tar -xf ffmpeg-linux-x86.tar.xz --strip-components=1 -C ffmpeg/linux-x86/
+#          wget https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz -O ffmpeg-linux-x64.tar.xz
+#          tar -xf ffmpeg-linux-x64.tar.xz --strip-components=1 -C ffmpeg/linux-x64/
+#
+#          # macOS（使用动态通配符）
+#          wget --trust-server-names -O ffmpeg-mac.zip "https://evermeet.cx/ffmpeg/get/ffmpeg/zip"
+#          unzip -j ffmpeg-mac.zip -d ffmpeg/mac/
+#
+#          echo "win-x86-path=ffmpeg/win-x86/ffmpeg.exe" >> $GITHUB_OUTPUT
+#          echo "win-x64-path=ffmpeg/win-x64/ffmpeg.exe" >> $GITHUB_OUTPUT
+#          echo "linux-x86-path=ffmpeg/linux-x86/ffmpeg" >> $GITHUB_OUTPUT
+#          echo "linux-x64-path=ffmpeg/linux-x64/ffmpeg" >> $GITHUB_OUTPUT
+#          # 移除 macOS 隔离属性
+#          if [ -f /usr/bin/xattr ]; then
+#            /usr/bin/xattr -dr com.apple.quarantine ffmpeg/mac/ffmpeg
+#          else
+#            echo "xattr not found, using fallback..."
+#            mv ffmpeg/mac/ffmpeg ffmpeg/mac/ffmpeg.bin
+#            chmod +x ffmpeg/mac/ffmpeg.bin
+#          fi
+#          echo "mac-path=ffmpeg/mac/ffmpeg" >> $GITHUB_OUTPUT
+
   build-windows:
     strategy:
       matrix:
@@ -117,7 +115,7 @@ jobs:
       - name: Start Xvfb
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-      
+
       - name: Verify OpenGL
         run: |
           xvfb-run -a glxinfo | grep "OpenGL version"
@@ -129,10 +127,10 @@ jobs:
       
       - name: Build AppImage
         run: |
-          xvfb-run -a pyinstaller --noconfirm --onefile `
-            --add-data "ffmpeg/linux-${{ matrix.arch }}/ffmpeg:." `
-            --hidden-import "cv2" `
-            --name VideoCropper_Linux_${{ matrix.arch }} `
+          xvfb-run -a pyinstaller --noconfirm --onefile \
+            --add-data "ffmpeg/linux-${{ matrix.arch }}/ffmpeg:." \
+            --hidden-import "cv2" \
+            --name VideoCropper_Linux_${{ matrix.arch }} \
             cut.py
       
       - uses: actions/upload-artifact@v4
@@ -176,20 +174,20 @@ jobs:
       - name: Build macOS Bundle
         run: |
           if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
-            arch -x86_64 pyinstaller --noconfirm --windowed --onefile `
-              --add-data "ffmpeg/mac/ffmpeg:." `
-              --osx-bundle-identifier com.yourcompany.videocropper `
-              --hidden-import "cv2" `
-              --icon assets/cut.icns `
-              --name VideoCropper_macOS_x86_64 `
+            arch -x86_64 pyinstaller --noconfirm --windowed --onefile \
+              --add-data "ffmpeg/mac/ffmpeg:." \
+              --osx-bundle-identifier com.yourcompany.videocropper \
+              --hidden-import "cv2" \
+              --icon assets/cut.icns \
+              --name VideoCropper_macOS_x86_64 \
               cut.py
           else
-            pyinstaller --noconfirm --windowed --onefile `
-              --add-data "ffmpeg/mac/ffmpeg:." `
-              --osx-bundle-identifier com.yourcompany.videocropper `
-              --hidden-import "cv2" `
-              --icon assets/cut.icns `
-              --name VideoCropper_macOS_arm64 `
+            pyinstaller --noconfirm --windowed --onefile \
+              --add-data "ffmpeg/mac/ffmpeg:." \
+              --osx-bundle-identifier com.yourcompany.videocropper \
+              --hidden-import "cv2" \
+              --icon assets/cut.icns \
+              --name VideoCropper_macOS_arm64 \
               cut.py
           fi
       
@@ -201,6 +199,7 @@ jobs:
       - name: Verify App Structure
         run: |
           ls -R dist/
+          # 检查可执行文件路径
           test -f dist/VideoCropper_macOS_${{ matrix.arch }}.app/Contents/MacOS/VideoCropper_macOS_${{ matrix.arch }} || echo "可执行文件不存在"
 
   create-dmg:
@@ -224,29 +223,35 @@ jobs:
       - name: Create Universal Binary
         run: |
           mkdir -p VideoCropper.app/Contents/MacOS
+          # 合并二进制文件
           lipo -create \
             artifacts/macOS_arm64/VideoCropper_macOS_arm64.app/Contents/MacOS/VideoCropper_macOS_arm64 \
             artifacts/macOS_x86_64/VideoCropper_macOS_x86_64.app/Contents/MacOS/VideoCropper_macOS_x86_64 \
             -output VideoCropper.app/Contents/MacOS/VideoCropper
+          # 复制资源文件
           cp -R artifacts/macOS_arm64/VideoCropper_macOS_arm64.app/Contents/Resources VideoCropper.app/Contents/
-          touch VideoCropper.app/.Trash
-      
+          touch VideoCropper.app/.Trash  # 修复部分环境下的路径问题
+
       - name: Validate Merged App
         run: |
           file VideoCropper.app/Contents/MacOS/VideoCropper | grep "Mach-O universal binary"
-      
+
       - name: Create DMG
         run: |
+          # 验证应用包结构
           if [ ! -d "VideoCropper.app" ]; then
             echo "Error: Merged app not found!"
             exit 1
           fi
+          # 使用临时目录避免权限问题
           export TMPDIR=$(mktemp -d)
           cp -R VideoCropper.app $TMPDIR/
+          # 创建磁盘映像，注意这里的 -srcfolder 使用当前目录下的 VideoCropper.app
           hdiutil create -size 500m -fs HFS+ \
             -volname "VideoCropper Installer" \
             -srcfolder VideoCropper.app \
             -ov -format UDZO VideoCropper.dmg
+          # 清理临时目录
           rm -rf "$TMPDIR"
       
       - uses: actions/upload-artifact@v4
@@ -258,16 +263,39 @@ jobs:
     needs: [build-windows, build-linux, create-dmg]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
         with:
-          pattern: '*'
-          path: artifacts
-          merge-multiple: true
-      
+          name: Windows_x86
+          path: artifacts/Windows_x86
+      - name: Download Windows x64
+        uses: actions/download-artifact@v4
+        with:
+          name: Windows_x64
+          path: artifacts/Windows_x64
+
+      - name: Download Linux Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Linux_x86
+          path: artifacts/Linux_x86
+      - name: Download Linux x64
+        uses: actions/download-artifact@v4
+        with:
+          name: Linux_x64
+          path: artifacts/Linux_x64
+
+      - name: Download macOS Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: macOS_Universal
+          path: artifacts/macOS_Universal
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: v${{ github.run_number }}
           body: |
             Multi-arch build containing:
@@ -275,6 +303,8 @@ jobs:
             - Linux x86/x64  
             - macOS Universal (ARM64 + Intel)
           files: |
-            artifacts/Windows_*/VideoCropper_Win_*.exe
-            artifacts/Linux_*/VideoCropper_Linux_*
-            artifacts/macOS_Universal/*.dmg
+            artifacts/Windows_x86/VideoCropper_Win_x86.exe
+            artifacts/Windows_x64/VideoCropper_Win_x64.exe
+            artifacts/Linux_x86/VideoCropper_Linux_x86
+            artifacts/Linux_x64/VideoCropper_Linux_x64
+            artifacts/macOS_Universal/VideoCropper.dmg
