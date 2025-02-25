@@ -323,5 +323,5 @@ jobs:
             artifacts/Linux_x86/VideoCropper_Linux_x86
             artifacts/Linux_x64/VideoCropper_Linux_x64
             artifacts/macOS_Universal/VideoCropper.dmg
-            artifacts/macOS_Universal/macOS_arm64.app
-            artifacts/macOS_Universal/macOS_x86_64.app
+            artifacts/macOS_arm64/*
+            artifacts/macOS_x86_64/*
