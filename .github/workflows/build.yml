@@ -19,7 +19,7 @@ jobs:
       - name: Prepare multi-arch FFmpeg
         id: prepare
         run: |
-          mkdir -p ffmpeg/{win-x86,win-x64,linux-x86,linux-x64,mac}
+          # mkdir -p ffmpeg/{win-x86,win-x64,linux-x86,linux-x64,mac}
 
           # Windows架构分离
           # wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x86.zip
