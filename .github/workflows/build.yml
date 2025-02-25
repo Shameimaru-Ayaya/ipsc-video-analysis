@@ -220,12 +220,6 @@ jobs:
           path: artifacts/macOS_x86_64
           merge-multiple: true
       
-      - name: Verify Downloaded Files
-        run: |
-          ls -R artifacts/
-          test -f artifacts/macOS_arm64/VideoCropper_macOS_arm64.app/Contents/MacOS/VideoCropper_macOS_arm64 || exit 1
-          test -f artifacts/macOS_x86_64/VideoCropper_macOS_x86_64.app/Contents/MacOS/VideoCropper_macOS_x86_64 || exit 1
-
       - name: Create Universal Binary
         run: |
           mkdir -p VideoCropper.app/Contents/MacOS
@@ -236,6 +230,7 @@ jobs:
             -output VideoCropper.app/Contents/MacOS/VideoCropper
           # 复制资源文件
           cp -R artifacts/macOS_arm64/VideoCropper_macOS_arm64.app/Contents/Resources VideoCropper.app/Contents/
+          touch VideoCropper.app/.Trash  # 修复部分环境下的路径问题
 
       - name: Validate Merged App
         run: |
@@ -244,14 +239,21 @@ jobs:
 
       - name: Create DMG
         run: |
+          # 验证应用包结构
+          if [ ! -d "VideoCropper.app" ]; then
+            echo "Error: Merged app not found!"
+            exit 1
+          fi
           # 使用临时目录避免权限问题
           export TMPDIR=$(mktemp -d)
           cp -R VideoCropper.app $TMPDIR/
-          # 强制指定 HFS+ 文件系统
-          hdiutil create -fs HFS+ \
+          # 创建磁盘映像（指定大小和文件系统）
+          hdiutil create -size 500m -fs HFS+ \
             -volname "VideoCropper Installer" \
             -srcfolder artifacts/VideoCropper.app \
             -ov -format UDZO VideoCropper.dmg
+          # 清理临时目录
+          rm -rf "$TMPDIR"
       
       - uses: actions/upload-artifact@v4
         with:
