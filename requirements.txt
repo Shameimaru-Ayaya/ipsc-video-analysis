@@ -1,0 +1,4 @@
+PyQt5==5.15.10
+opencv-python-headless==4.9.0.80
+numpy==1.26.4
+pyinstaller==6.12.0

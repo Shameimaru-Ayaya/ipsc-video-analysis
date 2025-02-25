@@ -18,6 +18,22 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QLabel, QPushButton,
                              QFileDialog, QVBoxLayout, QWidget, QProgressBar, QSlider,
                              QHBoxLayout, QComboBox)
 
+def resource_path(relative_path):
+    """ 解决打包后资源路径问题 """
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+# FFmpeg 路径处理
+FFMPEG_BIN = resource_path('ffmpeg.exe' if sys.platform == 'win32' else 'ffmpeg')
+
+# OpenCV 插件路径修复
+if hasattr(sys, '_MEIPASS'):
+    os.environ['OPENCV_VIDEOIO_PRIORITY_MSMF'] = '0'
+    os.environ['QT_PLUGIN_PATH'] = os.path.join(sys._MEIPASS, 'qt5_plugins')
+
 # 处理线程，增加了 output_format 参数支持
 class VideoProcessor(QThread):
     progress_updated = pyqtSignal(int)

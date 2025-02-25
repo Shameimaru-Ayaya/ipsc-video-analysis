@@ -1,0 +1,191 @@
+name: Multi-Platform Build and Release
+
+on:
+  push:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+jobs:
+  prepare-deps:
+    runs-on: ubuntu-latest
+    outputs:
+      win-x86-ffmpeg: ${{ steps.prepare.outputs.win-x86-path }}
+      win-x64-ffmpeg: ${{ steps.prepare.outputs.win-x64-path }}
+      linux-x86-ffmpeg: ${{ steps.prepare.outputs.linux-x86-path }}
+      linux-x64-ffmpeg: ${{ steps.prepare.outputs.linux-x64-path }}
+      mac-arm-ffmpeg: ${{ steps.prepare.outputs.mac-arm-path }}
+      mac-intel-ffmpeg: ${{ steps.prepare.outputs.mac-intel-path }}
+    steps:
+      - name: Prepare multi-arch FFmpeg
+        id: prepare
+        run: |
+          mkdir -p ffmpeg/{win-x86,win-x64,linux-x86,linux-x64,mac-arm,mac-intel}
+
+          # Windows架构分离
+          wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x86.zip
+          unzip -j ffmpeg-win-x86.zip "*x86/bin/ffmpeg.exe" -d ffmpeg/win-x86/
+          wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x64.zip
+          unzip -j ffmpeg-win-x64.zip "*x64/bin/ffmpeg.exe" -d ffmpeg/win-x64/
+
+          # Linux架构分离
+          wget https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-i686-static.tar.xz -O ffmpeg-linux-x86.tar.xz
+          tar -xf ffmpeg-linux-x86.tar.xz --strip-components=1 -C ffmpeg/linux-x86/
+          wget https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz -O ffmpeg-linux-x64.tar.xz
+          tar -xf ffmpeg-linux-x64.tar.xz --strip-components=1 -C ffmpeg/linux-x64/
+
+          # macOS架构分离
+          wget https://evermeet.cx/ffmpeg/ffmpeg-7.0-arm64.zip -O ffmpeg-mac-arm.zip
+          unzip ffmpeg-mac-arm.zip -d ffmpeg/mac-arm/
+          wget https://evermeet.cx/ffmpeg/ffmpeg-7.0-intel.zip -O ffmpeg-mac-intel.zip
+          unzip ffmpeg-mac-intel.zip -d ffmpeg/mac-intel/
+
+          echo "win-x86-path=ffmpeg/win-x86/ffmpeg.exe" >> $GITHUB_OUTPUT
+          echo "win-x64-path=ffmpeg/win-x64/ffmpeg.exe" >> $GITHUB_OUTPUT
+          echo "linux-x86-path=ffmpeg/linux-x86/ffmpeg" >> $GITHUB_OUTPUT
+          echo "linux-x64-path=ffmpeg/linux-x64/ffmpeg" >> $GITHUB_OUTPUT
+          echo "mac-arm-path=ffmpeg/mac-arm/ffmpeg" >> $GITHUB_OUTPUT
+          echo "mac-intel-path=ffmpeg/mac-intel/ffmpeg" >> $GITHUB_OUTPUT
+
+  build-windows:
+    needs: prepare-deps
+    strategy:
+      matrix:
+        arch: [x86, x64]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python (${{ matrix.arch }})
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          architecture: ${{ matrix.arch == 'x86' && 'x86' || 'x64' }}
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pywin32
+      
+      - name: Build EXE
+        run: |
+          pyinstaller --noconfirm --onefile --windowed ^
+            --add-data "${{ needs.prepare-deps.outputs.win-${{ matrix.arch }}-ffmpeg }};." ^
+            --hidden-import "cv2" ^
+            --icon assets/cut.ico ^
+            --name VideoCropper_Win_${{ matrix.arch }} ^
+            cut.py
+      
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Windows_${{ matrix.arch }}
+          path: dist/
+
+  build-linux:
+    needs: prepare-deps
+    strategy:
+      matrix:
+        arch: [x86, x64]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get install -y libgl1-mesa-glx libsm6 libxext6
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Build AppImage
+        run: |
+          pyinstaller --noconfirm --onefile ^
+            --add-data "${{ needs.prepare-deps.outputs.linux-${{ matrix.arch }}-ffmpeg }}:." ^
+            --hidden-import "cv2" ^
+            --name VideoCropper_Linux_${{ matrix.arch }} ^
+            cut.py
+      
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Linux_${{ matrix.arch }}
+          path: dist/
+
+  build-macos:
+    needs: prepare-deps
+    strategy:
+      matrix:
+        arch: [arm64, x86_64]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          architecture: ${{ matrix.arch }}
+      
+      - name: Build App Bundle
+        run: |
+          pyinstaller --noconfirm --windowed --onefile \
+            --add-data "${{ needs.prepare-deps.outputs.mac-${{ matrix.arch }}-ffmpeg }}:." \
+            --osx-bundle-identifier com.yourcompany.videocropper \
+            --hidden-import "cv2" ^
+            --icon assets/cut.icns \
+            --name VideoCropper_macOS_${{ matrix.arch }} \
+            cut.py
+      
+      - uses: actions/upload-artifact@v3
+        with:
+          name: macOS_${{ matrix.arch }}
+          path: dist/
+
+  create-dmg:
+    needs: build-macos
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create Universal DMG
+        run: |
+          # 合并双架构二进制
+          lipo -create -output VideoCropper.app/Contents/MacOS/VideoCropper \
+            dist/VideoCropper_macOS_arm64/Contents/MacOS/VideoCropper \
+            dist/VideoCropper_macOS_x86_64/Contents/MacOS/VideoCropper
+          
+          # 创建安装镜像
+          hdiutil create -volname "VideoCropper Installer" \
+            -srcfolder VideoCropper.app \
+            -ov -format UDZO VideoCropper.dmg
+      
+      - uses: actions/upload-artifact@v3
+        with:
+          name: macOS_Universal
+          path: VideoCropper.dmg
+
+  publish-release:
+    needs: [build-windows, build-linux, create-dmg]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          body: |
+            Multi-arch build containing:
+            - Windows x86/x64
+            - Linux x86/x64  
+            - macOS Universal
+          files: |
+            artifacts/Windows_*/*
+            artifacts/Linux_*/*
+            artifacts/macOS_Universal/*
