@@ -273,6 +273,7 @@ jobs:
         with:
           name: Windows_x86
           path: artifacts/Windows_x86
+          
       - name: Download Windows x64
         uses: actions/download-artifact@v4
         with:
@@ -302,10 +303,10 @@ jobs:
           name: macOS_arm64
           path: artifacts/macOS_arm64
 
-      - name: Download macOS*
+      - name: Download macOS
         uses: actions/download-artifact@v4
         with:
-          pattern: macOS*
+          pattern: macOS_x86_64
           path: artifacts/macOS_x86_64
           merge-multiple: true
 
