@@ -42,7 +42,13 @@ jobs:
           echo "linux-x86-path=ffmpeg/linux-x86/ffmpeg" >> $GITHUB_OUTPUT
           echo "linux-x64-path=ffmpeg/linux-x64/ffmpeg" >> $GITHUB_OUTPUT
           # 移除 macOS 隔离属性
-          /usr/bin/xattr -dr com.apple.quarantine ffmpeg/mac/ffmpeg
+          if [ -f /usr/bin/xattr ]; then
+            /usr/bin/xattr -dr com.apple.quarantine ffmpeg/mac/ffmpeg
+          else
+            echo "xattr not found, using fallback..."
+            mv ffmpeg/mac/ffmpeg ffmpeg/mac/ffmpeg.bin
+            chmod +x ffmpeg/mac/ffmpeg.bin
+          fi
           echo "mac-path=ffmpeg/mac/ffmpeg" >> $GITHUB_OUTPUT
 
   build-windows:
