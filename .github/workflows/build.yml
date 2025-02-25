@@ -42,7 +42,7 @@ jobs:
           echo "linux-x86-path=ffmpeg/linux-x86/ffmpeg" >> $GITHUB_OUTPUT
           echo "linux-x64-path=ffmpeg/linux-x64/ffmpeg" >> $GITHUB_OUTPUT
           # 移除 macOS 隔离属性
-          xattr -dr com.apple.quarantine ffmpeg/mac/ffmpeg
+          /usr/bin/xattr -dr com.apple.quarantine ffmpeg/mac/ffmpeg
           echo "mac-path=ffmpeg/mac/ffmpeg" >> $GITHUB_OUTPUT
 
   build-windows:
