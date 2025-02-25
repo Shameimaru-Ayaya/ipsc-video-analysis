@@ -87,6 +87,57 @@ jobs:
           name: Windows_${{ matrix.arch }}
           path: dist/
 
+  build-linux:
+    strategy:
+      matrix:
+        arch: [x86, x64]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify FFmpeg
+        run: |
+          ls ffmpeg/linux-${{ matrix.arch }}/ffmpeg
+          chmod +x ffmpeg/linux-${{ matrix.arch }}/ffmpeg
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1 libglx0 libsm6 libxext6 mesa-utils xvfb
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install pyinstaller
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Start Xvfb
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+
+      - name: Verify OpenGL
+        run: |
+          xvfb-run -a glxinfo | grep "OpenGL version"
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Build AppImage
+        run: |
+          xvfb-run -a pyinstaller --noconfirm --onefile \
+            --add-data "ffmpeg/linux-${{ matrix.arch }}/ffmpeg:." \
+            --hidden-import "cv2" \
+            --name VideoCropper_Linux_${{ matrix.arch }} \
+            cut.py
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Linux_${{ matrix.arch }}
+          path: dist/
+
   build-macos:
     strategy:
       matrix:
@@ -145,56 +196,11 @@ jobs:
           name: macOS_${{ matrix.arch }}
           path: dist/
 
-  build-linux:
-    strategy:
-      matrix:
-        arch: [x86, x64]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Verify FFmpeg
+      - name: Verify App Structure
         run: |
-          ls ffmpeg/linux-${{ matrix.arch }}/ffmpeg
-          chmod +x ffmpeg/linux-${{ matrix.arch }}/ffmpeg
-      
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgl1 libglx0 libsm6 libxext6 mesa-utils xvfb
-          echo "DISPLAY=:99" >> $GITHUB_ENV
-      
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools wheel
-          pip install pyinstaller
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-      - name: Start Xvfb
-        run: |
-          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-
-      - name: Verify OpenGL
-        run: |
-          xvfb-run -a glxinfo | grep "OpenGL version"
-      
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      
-      - name: Build AppImage
-        run: |
-          xvfb-run -a pyinstaller --noconfirm --onefile \
-            --add-data "ffmpeg/linux-${{ matrix.arch }}/ffmpeg:." \
-            --hidden-import "cv2" \
-            --name VideoCropper_Linux_${{ matrix.arch }} \
-            cut.py
-      
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Linux_${{ matrix.arch }}
-          path: dist/
+          ls -R dist/
+          # 检查可执行文件路径
+          test -f dist/VideoCropper_macOS_${{ matrix.arch }}.app/Contents/MacOS/VideoCropper_macOS_${{ matrix.arch }} || echo "可执行文件不存在"
 
   create-dmg:
     needs: build-macos
@@ -202,11 +208,22 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: macOS_*
-          path: artifacts
+          pattern: macOS_arm64
+          path: artifacts/macOS_arm64
+          merge-multiple: true
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: macOS_x86_64
+          path: artifacts/macOS_x86_64
           merge-multiple: true
       
-      - name: Create Universal App
+      - name: Verify Downloaded Files
+        run: |
+          ls -R artifacts/
+          test -f artifacts/macOS_arm64/VideoCropper_macOS_arm64.app/Contents/MacOS/VideoCropper_macOS_arm64
+          test -f artifacts/macOS_x86_64/VideoCropper_macOS_x86_64.app/Contents/MacOS/VideoCropper_macOS_x86_64
+
+      - name: Create Universal Binary
         run: |
           mkdir -p VideoCropper.app/Contents/MacOS
           lipo -create \
