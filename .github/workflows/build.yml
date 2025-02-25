@@ -112,27 +112,37 @@ jobs:
         with:
           python-version: '3.11'
       
-      - name: Install PyInstaller
+      - name: Install Dependencies
         run: |
           if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
-            arch -x86_64 pip install pyinstaller
+            arch -x86_64 pip install pyinstaller build setuptools wheel
           else
-            pip install pyinstaller
+            pip install pyinstaller build setuptools wheel
           fi
 
       - name: Build macOS Bundle
         run: |
-          # 单次构建支持多架构
-          python -m build --config-setting=--global-option="--plat-name=universal2" \
-            --add-data "ffmpeg/mac/ffmpeg:." \
-            --hidden-import "cv2" \
-            --icon assets/cut.icns \
-            --name VideoCropper_macOS \
-            cut.py
+          if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
+            arch -x86_64 pyinstaller --noconfirm --windowed --onefile \
+              --add-data "ffmpeg/mac/ffmpeg:." \
+              --osx-bundle-identifier com.yourcompany.videocropper \
+              --hidden-import "cv2" \
+              --icon assets/cut.icns \
+              --name VideoCropper_macOS_x86_64 \
+              cut.py
+          else
+            pyinstaller --noconfirm --windowed --onefile \
+              --add-data "ffmpeg/mac/ffmpeg:." \
+              --osx-bundle-identifier com.yourcompany.videocropper \
+              --hidden-import "cv2" \
+              --icon assets/cut.icns \
+              --name VideoCropper_macOS_arm64 \
+              cut.py
+          fi
       
       - uses: actions/upload-artifact@v4
         with:
-          name: macOS
+          name: macOS_${{ matrix.arch }}
           path: dist/
 
   build-linux:
@@ -154,6 +164,12 @@ jobs:
           sudo apt-get install -y libgl1 libglx0 libsm6 libxext6 mesa-utils xvfb
           echo "DISPLAY=:99" >> $GITHUB_ENV
       
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install pyinstaller
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Start Xvfb
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
@@ -190,10 +206,20 @@ jobs:
           path: artifacts
           merge-multiple: true
       
+      - name: Create Universal App
+        run: |
+          mkdir -p VideoCropper.app/Contents/MacOS
+          lipo -create \
+            artifacts/macOS_arm64/VideoCropper_macOS_arm64.app/Contents/MacOS/VideoCropper_macOS_arm64 \
+            artifacts/macOS_x86_64/VideoCropper_macOS_x86_64.app/Contents/MacOS/VideoCropper_macOS_x86_64 \
+            -output VideoCropper.app/Contents/MacOS/VideoCropper
+          
+          cp -R artifacts/macOS_arm64/VideoCropper_macOS_arm64.app/Contents/Resources VideoCropper.app/Contents/
+
       - name: Create DMG
         run: |
           hdiutil create -volname "VideoCropper Installer" \
-            -srcfolder artifacts/VideoCropper_macOS.app \
+            -srcfolder artifacts/VideoCropper.app \
             -ov -format UDZO VideoCropper.dmg
       
       - uses: actions/upload-artifact@v4
