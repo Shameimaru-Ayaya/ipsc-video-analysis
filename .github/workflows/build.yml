@@ -14,13 +14,12 @@ jobs:
       win-x64-ffmpeg: ${{ steps.prepare.outputs.win-x64-path }}
       linux-x86-ffmpeg: ${{ steps.prepare.outputs.linux-x86-path }}
       linux-x64-ffmpeg: ${{ steps.prepare.outputs.linux-x64-path }}
-      mac-arm-ffmpeg: ${{ steps.prepare.outputs.mac-arm-path }}
-      mac-intel-ffmpeg: ${{ steps.prepare.outputs.mac-intel-path }}
+      mac-ffmpeg: ${{ steps.prepare.outputs.mac-path }}
     steps:
       - name: Prepare multi-arch FFmpeg
         id: prepare
         run: |
-          mkdir -p ffmpeg/{win-x86,win-x64,linux-x86,linux-x64,mac-arm,mac-intel}
+          mkdir -p ffmpeg/{win-x86,win-x64,linux-x86,linux-x64,mac}
 
           # Windows架构分离
           wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x86.zip
@@ -34,18 +33,17 @@ jobs:
           wget https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz -O ffmpeg-linux-x64.tar.xz
           tar -xf ffmpeg-linux-x64.tar.xz --strip-components=1 -C ffmpeg/linux-x64/
 
-          # macOS架构分离
-          wget https://evermeet.cx/ffmpeg/ffmpeg-7.0-arm64.zip -O ffmpeg-mac-arm.zip
-          unzip ffmpeg-mac-arm.zip -d ffmpeg/mac-arm/
-          wget https://evermeet.cx/ffmpeg/ffmpeg-7.0-intel.zip -O ffmpeg-mac-intel.zip
-          unzip ffmpeg-mac-intel.zip -d ffmpeg/mac-intel/
+          # macOS（使用动态通配符）
+          wget --trust-server-names -O ffmpeg-mac.zip "https://evermeet.cx/ffmpeg/get/ffmpeg/zip"
+          unzip -j ffmpeg-mac.zip "ffmpeg-*/bin/ffmpeg" -d ffmpeg/mac/
 
           echo "win-x86-path=ffmpeg/win-x86/ffmpeg.exe" >> $GITHUB_OUTPUT
           echo "win-x64-path=ffmpeg/win-x64/ffmpeg.exe" >> $GITHUB_OUTPUT
           echo "linux-x86-path=ffmpeg/linux-x86/ffmpeg" >> $GITHUB_OUTPUT
           echo "linux-x64-path=ffmpeg/linux-x64/ffmpeg" >> $GITHUB_OUTPUT
-          echo "mac-arm-path=ffmpeg/mac-arm/ffmpeg" >> $GITHUB_OUTPUT
-          echo "mac-intel-path=ffmpeg/mac-intel/ffmpeg" >> $GITHUB_OUTPUT
+          # 移除 macOS 隔离属性
+          xattr -dr com.apple.quarantine ffmpeg/mac/ffmpeg
+          echo "mac-path=ffmpeg/mac/ffmpeg" >> $GITHUB_OUTPUT
 
   build-windows:
     needs: prepare-deps
@@ -101,10 +99,10 @@ jobs:
       
       - name: Build AppImage
         run: |
-          pyinstaller --noconfirm --onefile ^
-            --add-data "${{ matrix.arch == 'x86' && needs.prepare-deps.outputs.linux-x86-ffmpeg || needs.prepare-deps.outputs.linux-x64-ffmpeg }}:." ^
-            --hidden-import "cv2" ^
-            --name VideoCropper_Linux_${{ matrix.arch }} ^
+          pyinstaller --noconfirm --onefile \
+            --add-data "${{ matrix.arch == 'x86' && needs.prepare-deps.outputs.linux-x86-ffmpeg || needs.prepare-deps.outputs.linux-x64-ffmpeg }}:." \
+            --hidden-import "cv2" \
+            --name VideoCropper_Linux_${{ matrix.arch }} \
             cut.py
       
       - uses: actions/upload-artifact@v3
@@ -125,37 +123,54 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-          architecture: ${{ matrix.arch }}
       
-      - name: Build App Bundle
+      - name: Build macOS Bundle
         run: |
-          pyinstaller --noconfirm --windowed --onefile \
-            --add-data "${{ matrix.arch == 'arm64' && needs.prepare-deps.outputs.mac-arm-ffmpeg || needs.prepare-deps.outputs.mac-intel-ffmpeg }}:." \
-            --osx-bundle-identifier com.yourcompany.videocropper \
-            --hidden-import "cv2" ^
-            --icon assets/cut.icns \
-            --name VideoCropper_macOS_${{ matrix.arch }} \
-            cut.py
+          # 根据架构选择构建方式
+          if [[ "${{ matrix.arch }}" == "arm64" ]]; then
+            arch -x86_64 pyinstaller --noconfirm --windowed --onefile \
+              --add-data "${{ needs.prepare-deps.outputs.mac-ffmpeg }}:." \
+              --osx-bundle-identifier com.yourcompany.videocropper \
+              --hidden-import "cv2" \
+              --icon assets/mac.icns \
+              --name VideoCropper_macOS_${{ matrix.arch }} \
+              cut.py
+          else
+            pyinstaller --noconfirm --windowed --onefile \
+              --add-data "${{ needs.prepare-deps.outputs.mac-ffmpeg }}:." \
+              --osx-bundle-identifier com.yourcompany.videocropper \
+              --hidden-import "cv2" \
+              --icon assets/mac.icns \
+              --name VideoCropper_macOS_${{ matrix.arch }} \
+              cut.py
+          fi
       
       - uses: actions/upload-artifact@v3
         with:
           name: macOS_${{ matrix.arch }}
-          path: dist/
+          path: dist/VideoCropper_macOS_${{ matrix.arch }}.app
 
   create-dmg:
     needs: build-macos
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v3
+        with:
+          path: artifacts
       
       - name: Create Universal DMG
         run: |
-          # 合并双架构二进制
-          lipo -create -output VideoCropper.app/Contents/MacOS/VideoCropper \
-            dist/VideoCropper_macOS_arm64/Contents/MacOS/VideoCropper \
-            dist/VideoCropper_macOS_x86_64/Contents/MacOS/VideoCropper
-          
-          # 创建安装镜像
+          # 创建通用二进制
+          mkdir -p VideoCropper.app/Contents/MacOS
+          lipo -create \
+            -output VideoCropper.app/Contents/MacOS/VideoCropper \
+            artifacts/macOS_arm64/VideoCropper_macOS_arm64.app/Contents/MacOS/VideoCropper_macOS_arm64 \
+            artifacts/macOS_x86_64/VideoCropper_macOS_x86_64.app/Contents/MacOS/VideoCropper_macOS_x86_64
+
+          # 复制资源文件
+          cp -R artifacts/macOS_arm64/VideoCropper_macOS_arm64.app/Contents/Resources VideoCropper.app/Contents/
+
+          # 生成DMG
           hdiutil create -volname "VideoCropper Installer" \
             -srcfolder VideoCropper.app \
             -ov -format UDZO VideoCropper.dmg
@@ -169,10 +184,7 @@ jobs:
     needs: [build-windows, build-linux, create-dmg]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v3
         with:
           path: artifacts
       
@@ -184,7 +196,7 @@ jobs:
             Multi-arch build containing:
             - Windows x86/x64
             - Linux x86/x64  
-            - macOS Universal
+            - macOS Universal (ARM64 + Intel)
           files: |
             artifacts/Windows_*/*
             artifacts/Linux_*/*
