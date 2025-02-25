@@ -70,16 +70,11 @@ jobs:
         run: |
           pip install -r requirements.txt
           pip install pywin32
-
-      - name: Set FFmpeg Path
-        run: |
-          $ffmpegPath = if ("${{ matrix.arch }}" -eq "x86") { "${{ needs.prepare-deps.outputs.win-x86-ffmpeg }}" } else { "${{ needs.prepare-deps.outputs.win-x64-ffmpeg }}" }
-          echo "FFMPEG_PATH=$ffmpegPath" >> $env:GITHUB_ENV
       
       - name: Build EXE
         run: |
           pyinstaller --noconfirm --onefile --windowed `
-            --add-data "$env:FFMPEG_PATH;." `
+            --add-data "${{ matrix.arch == 'x86' && needs.prepare-deps.outputs.win-x86-ffmpeg || needs.prepare-deps.outputs.win-x64-ffmpeg }};." `
             --hidden-import "cv2" `
             --icon assets/cut.ico `
             --name "VideoCropper_Win_${{ matrix.arch }}" `
@@ -108,16 +103,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb mesa-utils
+          echo "DISPLAY=:99" >> $GITHUB_ENV
 
       - name: Start Xvfb
         run: |
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-          echo "DISPLAY=:99" >> $GITHUB_ENV
 
       - name: Verify OpenGL
         run: |
-          export DISPLAY=${{ env.DISPLAY }}
-          glxinfo | grep "OpenGL version"
+          xvfb-run -a glxinfo | grep "OpenGL version"
       
       - name: Setup Python
         uses: actions/setup-python@v4
