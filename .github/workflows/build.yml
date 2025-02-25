@@ -35,7 +35,7 @@ jobs:
 
           # macOS（使用动态通配符）
           wget --trust-server-names -O ffmpeg-mac.zip "https://evermeet.cx/ffmpeg/get/ffmpeg/zip"
-          unzip -j ffmpeg-mac.zip "ffmpeg-*/bin/ffmpeg" -d ffmpeg/mac/
+          unzip -j ffmpeg-mac.zip -d ffmpeg/mac/
 
           echo "win-x86-path=ffmpeg/win-x86/ffmpeg.exe" >> $GITHUB_OUTPUT
           echo "win-x64-path=ffmpeg/win-x64/ffmpeg.exe" >> $GITHUB_OUTPUT
@@ -132,7 +132,7 @@ jobs:
               --add-data "${{ needs.prepare-deps.outputs.mac-ffmpeg }}:." \
               --osx-bundle-identifier com.yourcompany.videocropper \
               --hidden-import "cv2" \
-              --icon assets/mac.icns \
+              --icon assets/cut.icns \
               --name VideoCropper_macOS_${{ matrix.arch }} \
               cut.py
           else
@@ -140,7 +140,7 @@ jobs:
               --add-data "${{ needs.prepare-deps.outputs.mac-ffmpeg }}:." \
               --osx-bundle-identifier com.yourcompany.videocropper \
               --hidden-import "cv2" \
-              --icon assets/mac.icns \
+              --icon assets/cut.icns \
               --name VideoCropper_macOS_${{ matrix.arch }} \
               cut.py
           fi
