@@ -175,8 +175,9 @@ jobs:
           if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
             arch -x86_64 pyinstaller --noconfirm --windowed \
               --add-data "ffmpeg/mac/ffmpeg:." \
-              --osx-bundle-identifier io.KirisameMarisa-DAZE.videocropper \
               --hidden-import cv2 \
+              --paths /opt/homebrew/opt/python@3.9/libexec/bin \
+              --osx-bundle-identifier io.KirisameMarisa-DAZE.videocropper \
               --icon assets/cut.icns \
               --additional-hooks-dir=hooks \
               --osx-entitlements-file entitlements.plist \
@@ -185,8 +186,9 @@ jobs:
           else
             pyinstaller --noconfirm --windowed \
               --add-data "ffmpeg/mac/ffmpeg:." \
-              --osx-bundle-identifier io.KirisameMarisa-DAZE.videocropper \
               --hidden-import cv2 \
+              --paths /opt/homebrew/opt/python@3.9/libexec/bin \
+              --osx-bundle-identifier io.KirisameMarisa-DAZE.videocropper \
               --icon assets/cut.icns \
               --additional-hooks-dir=hooks \
               --osx-entitlements-file entitlements.plist \
@@ -204,14 +206,6 @@ jobs:
           test -f dist/VideoCropper_macOS_${{ matrix.arch }}.app/Contents/Info.plist || exit 1
           test -f dist/VideoCropper_macOS_${{ matrix.arch }}.app/Contents/MacOS/VideoCropper_macOS_${{ matrix.arch }} || exit 1
           file dist/VideoCropper_macOS_${{ matrix.arch }}.app/Contents/MacOS/VideoCropper_macOS_${{ matrix.arch }} | grep "Mach-O"
-          ls dist/VideoCropper_macOS_${{ matrix.arch }}.app
-          chmod +x dist/VideoCropper_macOS_${{ matrix.arch }}.app
-          if [ -f /usr/bin/xattr ]; then
-            /usr/bin/xattr -dr com.apple.quarantine dist/VideoCropper_macOS_${{ matrix.arch }}.app
-          else
-            mv dist/VideoCropper_macOS_${{ matrix.arch }}.app dist/VideoCropper_macOS_${{ matrix.arch }}.app.bin
-            chmod +x dist/VideoCropper_macOS_${{ matrix.arch }}.app
-          fi
 
   create-dmg:
     needs: build-macos
@@ -308,10 +302,10 @@ jobs:
           name: macOS_arm64
           path: artifacts/macOS_arm64
 
-      - name: Download macOS x86_64
+      - name: Download macOS*
         uses: actions/download-artifact@v4
         with:
-          name: macOS_x86_64
+          name: macOS*
           path: artifacts/macOS_x86_64
 
       - name: Create GitHub Release
