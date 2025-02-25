@@ -24,7 +24,7 @@ jobs:
 
           # Windows架构分离
           wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x86.zip
-          unzip -j ffmpeg-win-x86.zip "*x86/bin/ffmpeg.exe" -d ffmpeg/win-x86/
+          unzip -j ffmpeg-win-x86.zip "ffmpeg-*-essentials_build/bin/ffmpeg.exe" -d ffmpeg/win-x86/
           wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x64.zip
           unzip -j ffmpeg-win-x64.zip "*x64/bin/ffmpeg.exe" -d ffmpeg/win-x64/
 
