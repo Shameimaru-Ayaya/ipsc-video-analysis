@@ -22,20 +22,20 @@ jobs:
           mkdir -p ffmpeg/{win-x86,win-x64,linux-x86,linux-x64,mac}
 
           # Windows架构分离
-          wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x86.zip
-          unzip -j ffmpeg-win-x86.zip "ffmpeg-*-essentials_build/bin/ffmpeg.exe" -d ffmpeg/win-x86/
-          wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x64.zip
-          unzip -j ffmpeg-win-x64.zip "ffmpeg-*-essentials_build/bin/ffmpeg.exe" -d ffmpeg/win-x64/
+          # wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x86.zip
+          # unzip -j ffmpeg-win-x86.zip "ffmpeg-*-essentials_build/bin/ffmpeg.exe" -d ffmpeg/win-x86/
+          # wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x64.zip
+          # unzip -j ffmpeg-win-x64.zip "ffmpeg-*-essentials_build/bin/ffmpeg.exe" -d ffmpeg/win-x64/
 
           # Linux架构分离
-          wget https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-i686-static.tar.xz -O ffmpeg-linux-x86.tar.xz
-          tar -xf ffmpeg-linux-x86.tar.xz --strip-components=1 -C ffmpeg/linux-x86/
-          wget https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz -O ffmpeg-linux-x64.tar.xz
-          tar -xf ffmpeg-linux-x64.tar.xz --strip-components=1 -C ffmpeg/linux-x64/
+          # wget https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-i686-static.tar.xz -O ffmpeg-linux-x86.tar.xz
+          # tar -xf ffmpeg-linux-x86.tar.xz --strip-components=1 -C ffmpeg/linux-x86/
+          # wget https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz -O ffmpeg-linux-x64.tar.xz
+          # tar -xf ffmpeg-linux-x64.tar.xz --strip-components=1 -C ffmpeg/linux-x64/
 
           # macOS（使用动态通配符）
-          wget --trust-server-names -O ffmpeg-mac.zip "https://evermeet.cx/ffmpeg/get/ffmpeg/zip"
-          unzip -j ffmpeg-mac.zip -d ffmpeg/mac/
+          # wget --trust-server-names -O ffmpeg-mac.zip "https://evermeet.cx/ffmpeg/get/ffmpeg/zip"
+          # unzip -j ffmpeg-mac.zip -d ffmpeg/mac/
 
           echo "win-x86-path=ffmpeg/win-x86/ffmpeg.exe" >> $GITHUB_OUTPUT
           echo "win-x64-path=ffmpeg/win-x64/ffmpeg.exe" >> $GITHUB_OUTPUT
