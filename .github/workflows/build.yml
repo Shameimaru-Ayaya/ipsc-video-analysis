@@ -234,7 +234,6 @@ jobs:
 
       - name: Validate Merged App
         run: |
-          # 确认合并后的文件结构
           file VideoCropper.app/Contents/MacOS/VideoCropper | grep "Mach-O universal binary"
 
       - name: Create DMG
@@ -247,10 +246,10 @@ jobs:
           # 使用临时目录避免权限问题
           export TMPDIR=$(mktemp -d)
           cp -R VideoCropper.app $TMPDIR/
-          # 创建磁盘映像（指定大小和文件系统）
+          # 创建磁盘映像，注意这里的 -srcfolder 使用当前目录下的 VideoCropper.app
           hdiutil create -size 500m -fs HFS+ \
             -volname "VideoCropper Installer" \
-            -srcfolder artifacts/VideoCropper.app \
+            -srcfolder VideoCropper.app \
             -ov -format UDZO VideoCropper.dmg
           # 清理临时目录
           rm -rf "$TMPDIR"
