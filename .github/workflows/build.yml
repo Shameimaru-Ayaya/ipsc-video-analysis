@@ -330,31 +330,11 @@ jobs:
             artifacts/macOS_arm64/*
             artifacts/macOS_x86_64/*
 
-  deploy-web:
+  publish-page:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install Dependencies
-        run: pip install pyscript
-
-      - name: Build Web App
-        run: |
-          # 修改点1：直接构建到docs根目录
-          mkdir -p docs
-          cp -r web_app/* docs/
-          echo "kirisamemarisa-daze.github.io" > docs/CNAME  # 修改点2：简化域名配置
-
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs  # 修改点3：直接发布docs目录内容
-          # 移除destination_dir参数
-          keep_files: true
+          publish_dir: ./docs

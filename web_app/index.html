@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>VideoCropper Web</title>
-    <base href="/iPSC-Video-Analysis/">
+    <base href="/ipsc-video-analysis/">
     <!-- PyScript 核心依赖 -->
-    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
-    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/pyscript/0.22.0/core.css">
+    <script defer src="https://cdn.jsdelivr.net/pyscript/0.22.0/core.js"></script>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://cdn.jsdelivr.net https://pyscript.net 'unsafe-eval' 'unsafe-inline';">
     <!-- 自定义样式 -->
     <style>
         #container { max-width: 800px; margin: 20px auto; padding: 20px; }
@@ -25,7 +26,9 @@
 
     <!-- 嵌入 cut.py 逻辑 -->
     <py-config>
-        packages = ["opencv-python", "numpy"]
+        packages = ["numpy"]
+        [[fetch]]
+        files = ["https://YOUR_REPO/opencv-python.js"]  # 需自行构建或查找兼容版本
     </py-config>
     <py-script>
         print("Hello, PyScript!")
