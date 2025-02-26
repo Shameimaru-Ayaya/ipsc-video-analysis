@@ -165,9 +165,9 @@ jobs:
       - name: Install Dependencies
         run: |
           if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
-            arch -x86_64 pip install pyinstaller build setuptools wheel opencv-python
+            arch -x86_64 pip install pyinstaller build setuptools wheel opencv-python pyqt5
           else
-            pip install pyinstaller build setuptools wheel opencv-python
+            pip install pyinstaller build setuptools wheel opencv-python pyqt5
           fi
 
       - name: Build macOS Bundle
@@ -176,7 +176,6 @@ jobs:
             arch -x86_64 pyinstaller --noconfirm --windowed \
               --add-data "ffmpeg/mac/ffmpeg:." \
               --hidden-import cv2 \
-              --collect-all cv2 \
               --paths /opt/homebrew/opt/python@3.9/libexec/bin \
               --osx-bundle-identifier io.KirisameMarisa-DAZE.videocropper \
               --icon assets/cut.icns \
@@ -188,7 +187,6 @@ jobs:
             pyinstaller --noconfirm --windowed \
               --add-data "ffmpeg/mac/ffmpeg:." \
               --hidden-import cv2 \
-              --collect-all cv2 \
               --paths /opt/homebrew/opt/python@3.9/libexec/bin \
               --osx-bundle-identifier io.KirisameMarisa-DAZE.videocropper \
               --icon assets/cut.icns \

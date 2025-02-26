@@ -605,8 +605,3 @@ if __name__ == "__main__":
     window = MainWindow()
     window.show()
     sys.exit(app.exec_())
-
-if __name__ == "__main__" and "--test-cv2" in sys.argv:
-    import cv2
-    print(f"OpenCV Version: {cv2.__version__}")
-    sys.exit(0)
