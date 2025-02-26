@@ -4,7 +4,7 @@
 [![GitHub Activity](https://img.shields.io/badge/GitHub-Active-brightgreen)](https://github.com/KirisameMarisa-DAZE/ipsc-video-analysis)
 [![Build Status](https://img.shields.io/badge/Progress-In%20Progress-yellow)](https://github.com/KirisameMarisa-DAZE/ipsc-video-analysis/)
 [![License](https://img.shields.io/github/license/KirisameMarisa-DAZE/ipsc-video-analysis)](LICENSE)
-[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/KirisameMarisa-DAZE/ipsc-video-analysis/main.yml?branch=main)](https://github.com/KirisameMarisa-DAZE/ipsc-video-analysis/branches)
+[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/KirisameMarisa-DAZE/ipsc-video-analysis/build.yml?branch=main)](https://github.com/KirisameMarisa-DAZE/ipsc-video-analysis/branches)
 
 ![Python](https://img.shields.io/badge/-Python-3776AB?style=flat-square&logo=python&logoColor=white)
 ![OpenCV](https://img.shields.io/badge/-OpenCV-5C3EE8?style=flat-square&logo=opencv&logoColor=white)
