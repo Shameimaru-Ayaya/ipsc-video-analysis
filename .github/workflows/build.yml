@@ -346,14 +346,15 @@ jobs:
 
       - name: Build Web App
         run: |
-          mkdir -p docs/iPSC-Video-Analysis
-          cp -r web_app/* docs/iPSC-Video-Analysis/
-          echo "kirisamemarisa-daze.github.io/iPSC-Video-Analysis" > docs/CNAME  # 自定义域名（可选）
+          # 修改点1：直接构建到docs根目录
+          mkdir -p docs
+          cp -r web_app/* docs/
+          echo "kirisamemarisa-daze.github.io" > docs/CNAME  # 修改点2：简化域名配置
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/iPSC-Video-Analysis
-          destination_dir: iPSC-Video-Analysis
-          keep_files: true  # 保留历史文件
+          publish_dir: ./docs  # 修改点3：直接发布docs目录内容
+          # 移除destination_dir参数
+          keep_files: true
