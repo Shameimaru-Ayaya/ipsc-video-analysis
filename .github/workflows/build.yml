@@ -176,6 +176,7 @@ jobs:
             arch -x86_64 pyinstaller --noconfirm --windowed \
               --add-data "ffmpeg/mac/ffmpeg:." \
               --hidden-import cv2 \
+              --collect-all cv2 \
               --paths /opt/homebrew/opt/python@3.9/libexec/bin \
               --osx-bundle-identifier io.KirisameMarisa-DAZE.videocropper \
               --icon assets/cut.icns \
@@ -187,6 +188,7 @@ jobs:
             pyinstaller --noconfirm --windowed \
               --add-data "ffmpeg/mac/ffmpeg:." \
               --hidden-import cv2 \
+              --collect-all cv2 \
               --paths /opt/homebrew/opt/python@3.9/libexec/bin \
               --osx-bundle-identifier io.KirisameMarisa-DAZE.videocropper \
               --icon assets/cut.icns \
