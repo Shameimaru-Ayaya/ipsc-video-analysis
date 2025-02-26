@@ -1,9 +1,10 @@
 # iPSC-Video-Analysis
 
-[![Version](https://img.shields.io/badge/Version-1.0.0-blue?style=flat-square)](https://github.com/KirisameMarisa-DAZE/ipsc-video-analysis)
+[![Version](https://img.shields.io/badge/Version-2.2.1-blue?style=flat-square)](https://github.com/KirisameMarisa-DAZE/ipsc-video-analysis/releases)
+[![GitHub Activity](https://img.shields.io/badge/GitHub-Active-brightgreen)](https://github.com/KirisameMarisa-DAZE/ipsc-video-analysis)
+[![Build Status](https://img.shields.io/badge/Progress-In%20Progress-yellow)](https://github.com/KirisameMarisa-DAZE/ipsc-video-analysis/)
 [![License](https://img.shields.io/github/license/KirisameMarisa-DAZE/ipsc-video-analysis)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/KirisameMarisa-DAZE/ipsc-video-analysis?style=social)](https://github.com/KirisameMarisa-DAZE/ipsc-video-analysis/stargazers)
-[![Visitors](https://changkun.de/urlstat?mode=github&repo=KirisameMarisa-DAZE/ipsc-video-analysis)](https://github.com/KirisameMarisa-DAZE/ipsc-video-analysis)
+[![GitHub Actions](https://img.shields.io/github/actions/workflow/status/KirisameMarisa-DAZE/ipsc-video-analysis/main.yml?branch=main)](https://github.com/KirisameMarisa-DAZE/ipsc-video-analysis/branches)
 
 ![Python](https://img.shields.io/badge/-Python-3776AB?style=flat-square&logo=python&logoColor=white)
 ![OpenCV](https://img.shields.io/badge/-OpenCV-5C3EE8?style=flat-square&logo=opencv&logoColor=white)
@@ -67,7 +68,7 @@ sudo chmod -R 755 <同上操作>
 执行完咒语后，即可享受魔法般的裁剪体验~
 
 ## Future Work 🌌
-> 还早嘞！这才哪到哪（悲）
+> 还早嘞！这才哪到哪（悲）  
 > まだまだ
 
 ## Conclusion 🤔
