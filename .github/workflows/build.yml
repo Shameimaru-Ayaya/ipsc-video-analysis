@@ -194,6 +194,16 @@ jobs:
             $arch_flags \
             cut.py
 
+      - name: Verify OpenCV Import
+        run: |
+          ./dist/VideoCropper_macOS_${{ matrix.arch }}.app/Contents/MacOS/VideoCropper_macOS_${{ matrix.arch }} --test-cv2
+
+      - name: Code Sign
+        run: |
+          codesign --force --deep --sign "Developer ID Application: page@mail.ustc.edu.cn" \
+            --entitlements entitlements.plist \
+            dist/VideoCropper_macOS_${{ matrix.arch }}.app
+
       - uses: actions/upload-artifact@v4
         with:
           name: macOS_${{ matrix.arch }}
