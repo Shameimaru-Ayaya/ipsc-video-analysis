@@ -66,7 +66,7 @@ sudo chmod -R 755 <同上操作>
 # English Version
 
 ## Abstract ✨
-You're absolutely right, but **VideoCropper** is a brand-new video cropping application independently developed by [GitHub@KirisameMarisa](https://github.com/). The program takes place in a system environment called "Python", where videos chosen by the system will be granted "ROI" to guide the power of cropping. You'll play as a mysterious character named "User", encountering uniquely colorful videos in free development, fighting against noise sources together to recover lost critical information — while gradually uncovering the truth of "experimental data".
+You're absolutely right, but **VideoCropper** is a brand-new video cropping application independently developed by [GitHub@KirisameMarisa-DAZE](https://github.com/). The program takes place in a system environment called "Python", where videos chosen by the system will be granted "ROI" to guide the power of cropping. You'll play as a mysterious character named "User", encountering uniquely colorful videos in free development, fighting against noise sources together to recover lost critical information — while gradually uncovering the truth of "experimental data".
 
 ## Introduction 🎯
 VideoCropper is a small Python-based software for cropping video ROI regions and exporting processed videos. Source code: `./cut.py`. ~~Totally no technical content~~
