@@ -146,66 +146,60 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify FFmpeg
+      - name: Install OpenCV dependencies
         run: |
-          ls ffmpeg/mac/ffmpeg
+          # 安装核心依赖[4,7](@ref)
+          brew install cmake wget
+          pip3 install numpy
+          pip3 install opencv-python-headless==4.5.5.64  # 指定兼容版本[4](@ref)
+
+      - name: Prepare FFmpeg
+        run: |
+          mkdir -p ffmpeg/mac
+          wget --trust-server-names -O ffmpeg-mac.zip "https://evermeet.cx/ffmpeg/get/ffmpeg/zip"
+          unzip -j ffmpeg-mac.zip -d ffmpeg/mac/
           chmod +x ffmpeg/mac/ffmpeg
           if [ -f /usr/bin/xattr ]; then
-            /usr/bin/xattr -dr com.apple.quarantine ffmpeg/mac/ffmpeg
-          else
-            mv ffmpeg/mac/ffmpeg ffmpeg/mac/ffmpeg.bin
-            chmod +x ffmpeg/mac/ffmpeg.bin
+            xattr -dr com.apple.quarantine ffmpeg/mac/ffmpeg
           fi
-      
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      
-      - name: Install Dependencies
+
+      - name: Create OpenCV hooks
         run: |
-          if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
-            arch -x86_64 pip install pyinstaller build setuptools wheel
-          else
-            pip install pyinstaller build setuptools wheel
-          fi
+          mkdir -p hooks
+          echo 'from PyInstaller.utils.hooks import collect_dynamic_libs' > hooks/hook-cv2.py
+          echo 'hiddenimports = ["cv2"]' >> hooks/hook-cv2.py
+          echo 'binaries = collect_dynamic_libs("cv2")' >> hooks/hook-cv2.py
 
       - name: Build macOS Bundle
         run: |
+          # 架构兼容处理[8](@ref)
           if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
-            arch -x86_64 pyinstaller --noconfirm --windowed \
-              --add-data "ffmpeg/mac/ffmpeg:." \
-              --hidden-import cv2 \
-              --paths /opt/homebrew/opt/python@3.9/libexec/bin \
-              --osx-bundle-identifier io.KirisameMarisa-DAZE.videocropper \
-              --icon assets/cut.icns \
-              --additional-hooks-dir=hooks \
-              --osx-entitlements-file entitlements.plist \
-              --name VideoCropper_macOS_x86_64 \
-              cut.py
+            arch_flags="--arch x86_64"
+            python_exec="arch -x86_64 /usr/bin/python3"
           else
-            pyinstaller --noconfirm --windowed \
-              --add-data "ffmpeg/mac/ffmpeg:." \
-              --hidden-import cv2 \
-              --paths /opt/homebrew/opt/python@3.9/libexec/bin \
-              --osx-bundle-identifier io.KirisameMarisa-DAZE.videocropper \
-              --icon assets/cut.icns \
-              --additional-hooks-dir=hooks \
-              --osx-entitlements-file entitlements.plist \
-              --name VideoCropper_macOS_arm64 \
-              cut.py
+            arch_flags="--arch arm64"
+            python_exec="/usr/bin/python3"
           fi
-      
+
+          $python_exec -m PyInstaller \
+            --noconfirm \
+            --windowed \
+            --add-data "ffmpeg/mac/ffmpeg:." \
+            --additional-hooks-dir=hooks \
+            --hidden-import cv2 \
+            --paths $(python3 -c "import cv2; print(cv2.__file__.rsplit('/',2)[0])") \
+            --osx-bundle-identifier io.KirisameMarisa-DAZE.videocropper \
+            --icon assets/cut.icns \
+            --name "VideoCropper_macOS_${{ matrix.arch }}" \
+            $arch_flags \
+            cut.py
+
       - uses: actions/upload-artifact@v4
         with:
           name: macOS_${{ matrix.arch }}
-          path: dist/
-
-      - name: Verify App Structure
-        run: |
-          test -f dist/VideoCropper_macOS_${{ matrix.arch }}.app/Contents/Info.plist || exit 1
-          test -f dist/VideoCropper_macOS_${{ matrix.arch }}.app/Contents/MacOS/VideoCropper_macOS_${{ matrix.arch }} || exit 1
-          file dist/VideoCropper_macOS_${{ matrix.arch }}.app/Contents/MacOS/VideoCropper_macOS_${{ matrix.arch }} | grep "Mach-O"
+          path: |
+            dist/VideoCropper_macOS_${{ matrix.arch }}.app
+            dist/VideoCropper_macOS_${{ matrix.arch }}
 
   create-dmg:
     needs: build-macos

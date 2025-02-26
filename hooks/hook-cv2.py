@@ -1,3 +1,4 @@
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_dynamic_libs
 
-datas = collect_data_files("cv2")
+hiddenimports = ['cv2']
+binaries = collect_dynamic_libs('cv2')
