@@ -52,11 +52,14 @@ sudo xattr -cr <拖入目标文件到此处自动生成路径>
 sudo chmod -R 755 <同上操作>
 ```
 
+> 连终端都不会用的大哥哥真是❤️雑魚❤️呢～
+
 ## Results 🎉
 执行完咒语后，即可享受魔法般的裁剪体验~
 
 ## Future Work 🌌
 > 还早嘞！这才哪到哪（悲）
+> まだまだ
 
 ## Conclusion 🤔
 > 我打代码？真的假的  
@@ -111,6 +114,8 @@ sudo xattr -cr <Drag file here for auto-path>
 # Fix permissions
 sudo chmod -R 755 <Same as above>
 ```
+
+> Even a grown-up who can't even handle basic terminal commands is seriously ❤️small fry❤️, huh~
 
 ## Results 🎉
 After chanting the spells, enjoy the magic cropping experience~
