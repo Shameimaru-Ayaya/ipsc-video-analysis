@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>VideoCropper Web</title>
+    <base href="/iPSC-Video-Analysis/">
+    <!-- PyScript 核心依赖 -->
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+    <!-- 自定义样式 -->
+    <style>
+        #container { max-width: 800px; margin: 20px auto; padding: 20px; }
+        .input-group { margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>VideoCropper Web</h1>
+        <div class="input-group">
+            <input type="file" id="video-file" accept="video/*">
+        </div>
+        <button id="process-btn" py-click="process_video()">开始处理</button>
+        <div id="output"></div>
+    </div>
+
+    <!-- 嵌入 cut.py 逻辑 -->
+    <py-config>
+        packages = ["opencv-python", "numpy"]
+    </py-config>
+    <py-script>
+        print("Hello, PyScript!")
+        import cv2
+        import numpy as np
+        from js import document, console
+
+        def process_video():
+            video_file = document.getElementById("video-file").files[0]
+            if not video_file:
+                console.log("请先选择视频文件")
+                return
+
+            # 此处调用 cut.py 的核心逻辑
+            # 示例：读取视频并输出时长
+            video_url = URL.createObjectURL(video_file)
+            cap = cv2.VideoCapture(video_url)
+            duration = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) / cap.get(cv2.CAP_PROP_FPS))
+            document.getElementById("output").innerHTML = f"视频时长：{duration}秒"
+    </py-script>
+</body>
+</html>
