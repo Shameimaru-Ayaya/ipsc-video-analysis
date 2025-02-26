@@ -41,30 +41,30 @@
     </style>
 </head>
 <body>
-    <h1>视频裁剪工具</h1>
-    
-    <!-- 视频输入 -->
-    <input type="file" id="videoInput" accept="video/*">
-    
-    <!-- 视频预览区域 -->
-    <div id="videoContainer">
-        <canvas id="previewCanvas"></canvas>
-    </div>
-    
-    <!-- 控制按钮 -->
-    <div id="controls">
-        <button id="processBtn" class="btn" disabled>开始裁剪</button>
-        <select id="formatSelect" class="btn">
-            <option value="mp4">MP4</option>
-            <option value="webm">WebM</option>
-        </select>
-    </div>
-    
-    <!-- 进度条 -->
-    <progress id="progress" value="0" max="100"></progress>
+    <div class="container">
+        <!-- 视频输入 -->
+        <input type="file" id="videoInput" accept="video/*">
+        
+        <!-- 预览与 ROI 选择 -->
+        <div class="preview-area">
+            <canvas id="previewCanvas"></canvas>
+            <div class="roi-handle" data-direction="top-left"></div>
+            <!-- 其他 7 个手柄 -->
+        </div>
 
-    <!-- 引入脚本 -->
-    <script src="scripts/ffmpeg-core.js"></script>
+        <!-- 控制面板 -->
+        <div class="controls">
+            <select id="formatSelect">
+                <option value="mp4">MP4</option>
+                <option value="avi">AVI</option>
+            </select>
+            <button id="processBtn">开始处理</button>
+            <progress id="progressBar" max="100"></progress>
+        </div>
+    </div>
+
+    <!-- FFmpeg 核心库 -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/umd/ffmpeg.min.js"></script>
     <script src="scripts/main.js"></script>
 </body>
 </html>

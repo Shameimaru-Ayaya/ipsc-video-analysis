@@ -1,0 +1,24 @@
+.preview-area {
+    position: relative;
+    max-width: 800px;
+    margin: 20px auto;
+}
+
+#previewCanvas {
+    border: 2px dashed #666;
+    cursor: crosshair;
+}
+
+.roi-handle {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border: 2px solid red;
+    border-radius: 50%;
+    cursor: move;
+}
+
+/* 动态定位 8 个手柄 */
+.roi-handle[data-direction="top-left"] { top: -6px; left: -6px; }
+/* ...其他手柄定位... */
