@@ -229,17 +229,17 @@ jobs:
           path: artifacts/macOS_x86_64
           merge-multiple: true
       
-      - name: Create Universal Binary
+      - name: Create Universal App Bundle
         run: |
-          mkdir -p VideoCropper.app/Contents/MacOS
-          # 合并二进制文件
+          # 将 ARM64 完整的 .app 复制为基础
+          cp -R artifacts/macOS_arm64/VideoCropper_macOS_arm64.app VideoCropper.app
+          # 用 lipo 合并两个架构的可执行文件，覆盖基础包中 ARM64 的二进制文件
           lipo -create \
             artifacts/macOS_arm64/VideoCropper_macOS_arm64.app/Contents/MacOS/VideoCropper_macOS_arm64 \
             artifacts/macOS_x86_64/VideoCropper_macOS_x86_64.app/Contents/MacOS/VideoCropper_macOS_x86_64 \
             -output VideoCropper.app/Contents/MacOS/VideoCropper
-          # 复制资源文件
-          cp -R artifacts/macOS_arm64/VideoCropper_macOS_arm64.app/Contents/Resources VideoCropper.app/Contents/
-          touch VideoCropper.app/.Trash  # 修复部分环境下的路径问题
+          # 如有需要，可重新签名（注意：修改可执行文件后签名可能失效）
+          # sudo codesign --force --deep --sign - VideoCropper.app
 
       - name: Validate Merged App
         run: |
@@ -247,20 +247,18 @@ jobs:
 
       - name: Create DMG
         run: |
-          # 验证应用包结构
           if [ ! -d "VideoCropper.app" ]; then
             echo "Error: Merged app not found!"
             exit 1
           fi
-          # 使用临时目录避免权限问题
+          # 为避免权限问题，使用临时目录复制应用包
           export TMPDIR=$(mktemp -d)
-          cp -R VideoCropper.app $TMPDIR/
-          # 创建磁盘映像，注意这里的 -srcfolder 使用当前目录下的 VideoCropper.app
+          cp -R VideoCropper.app "$TMPDIR/"
+          # 使用 hdiutil 创建 DMG，并保留完整的 .app 包结构
           hdiutil create -size 500m -fs HFS+ \
             -volname "VideoCropper Installer" \
-            -srcfolder VideoCropper.app \
+            -srcfolder "$TMPDIR/VideoCropper.app" \
             -ov -format UDZO VideoCropper.dmg
-          # 清理临时目录
           rm -rf "$TMPDIR"
       
       - uses: actions/upload-artifact@v4
