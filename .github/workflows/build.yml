@@ -342,7 +342,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install Dependencies
-        run: pip install py-script
+        run: pip install pyscript
 
       - name: Build Web App
         run: |
