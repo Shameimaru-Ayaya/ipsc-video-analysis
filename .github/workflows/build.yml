@@ -165,9 +165,9 @@ jobs:
       - name: Install Dependencies
         run: |
           if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
-            arch -x86_64 pip install pyinstaller build setuptools wheel
+            arch -x86_64 pip install pyinstaller build setuptools wheel opencv-python
           else
-            pip install pyinstaller build setuptools wheel
+            pip install pyinstaller build setuptools wheel opencv-python
           fi
 
       - name: Build macOS Bundle
