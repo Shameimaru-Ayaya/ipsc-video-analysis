@@ -1,4 +1,13 @@
 # iPSC-Video-Analysis
+
+[![Version](https://img.shields.io/badge/Version-1.0.0-blue?style=flat-square)](https://github.com/KirisameMarisa-DAZE/ipsc-video-analysis)
+[![License](https://img.shields.io/github/license/KirisameMarisa-DAZE/ipsc-video-analysis)](LICENSE)
+[![GitHub Stars](https://img.shields.io/github/stars/KirisameMarisa-DAZE/ipsc-video-analysis?style=social)](https://github.com/KirisameMarisa-DAZE/ipsc-video-analysis/stargazers)
+[![Visitors](https://changkun.de/urlstat?mode=github&repo=KirisameMarisa-DAZE/ipsc-video-analysis)](https://github.com/KirisameMarisa-DAZE/ipsc-video-analysis)
+
+![Python](https://img.shields.io/badge/-Python-3776AB?style=flat-square&logo=python&logoColor=white)
+![OpenCV](https://img.shields.io/badge/-OpenCV-5C3EE8?style=flat-square&logo=opencv&logoColor=white)
+
 A method for analyzing mechanical signals from iPSC experimental videos.
 
 # VideoCropper
