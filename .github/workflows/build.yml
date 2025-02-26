@@ -329,3 +329,31 @@ jobs:
             artifacts/macOS_Universal/*
             artifacts/macOS_arm64/*
             artifacts/macOS_x86_64/*
+
+  deploy-web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install py-script
+
+      - name: Build Web App
+        run: |
+          mkdir -p docs/iPSC-Video-Analysis
+          cp -r web_app/* docs/iPSC-Video-Analysis/
+          echo "kirisamemarisa-daze.github.io/iPSC-Video-Analysis" > docs/CNAME  # 自定义域名（可选）
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/iPSC-Video-Analysis
+          destination_dir: iPSC-Video-Analysis
+          keep_files: true  # 保留历史文件
