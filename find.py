@@ -494,7 +494,7 @@ if __name__ == "__main__":
             cv2.setUseOptimized(True)
             cv2.cuda.setDevice(0)
         # 示例：传入视频路径，返回ROI数值
-        video_path = '/Users/page/Documents/-文稿/lpz/4-OldCM_Old/20241120/20241120_photo=1.25x_cell(1,1,M)=Old-CM_Day6_2826.avi'
+        video_path = '/Users/page/Documents/-文稿/lpz/4-OldCM_Old/20241122/20241122_photo=1.25x_cell=Old-CM_Day8_2850.avi'
         detector = MotionDetector()
         rois = detector.analyze(video_path)
         if rois is None:
