@@ -86,7 +86,7 @@ jobs:
             --hidden-import "PyQt5.QtGui" `
             --hidden-import "PyQt5.QtWidgets" `
             --icon assets/cut.ico `
-            --name "VideoProcesser_Win_${{ matrix.arch }}" `
+            --name "VideoCropper_Win_${{ matrix.arch }}" `
             video_processer_final.py
       
       - uses: actions/upload-artifact@v4
@@ -144,7 +144,7 @@ jobs:
             --hidden-import PyQt5.QtCore \
             --hidden-import PyQt5.QtGui \
             --hidden-import PyQt5.QtWidgets \
-            --name VideoProcesser_Linux_${{ matrix.arch }} \
+            --name VideoCropper_Linux_${{ matrix.arch }} \
             video_processer_final.py
       
       - uses: actions/upload-artifact@v4
@@ -205,7 +205,7 @@ jobs:
               --icon assets/cut.icns \
               --additional-hooks-dir=hooks \
               --osx-entitlements-file entitlements.plist \
-              --name VideoProcesser_macOS_x86_64 \
+              --name VideoCropper_macOS_x86_64 \
               video_processer_final.py
           else
             pyinstaller --noconfirm --windowed \
@@ -224,7 +224,7 @@ jobs:
               --icon assets/cut.icns \
               --additional-hooks-dir=hooks \
               --osx-entitlements-file entitlements.plist \
-              --name VideoProcesser_macOS_arm64 \
+              --name VideoCropper_macOS_arm64 \
               video_processer_final.py
           fi
       
@@ -235,9 +235,9 @@ jobs:
 
       - name: Verify App Structure
         run: |
-          test -f dist/VideoProcesser_macOS_${{ matrix.arch }}.app/Contents/Info.plist || exit 1
-          test -f dist/VideoProcesser_macOS_${{ matrix.arch }}.app/Contents/MacOS/VideoProcesser_macOS_${{ matrix.arch }} || exit 1
-          file dist/VideoProcesser_macOS_${{ matrix.arch }}.app/Contents/MacOS/VideoProcesser_macOS_${{ matrix.arch }} | grep "Mach-O"
+          test -f dist/VideoCropper_macOS_${{ matrix.arch }}.app/Contents/Info.plist || exit 1
+          test -f dist/VideoCropper_macOS_${{ matrix.arch }}.app/Contents/MacOS/VideoCropper_macOS_${{ matrix.arch }} || exit 1
+          file dist/VideoCropper_macOS_${{ matrix.arch }}.app/Contents/MacOS/VideoCropper_macOS_${{ matrix.arch }} | grep "Mach-O"
 
   create-dmg:
     needs: build-macos
@@ -260,39 +260,39 @@ jobs:
       - name: Create Universal App Bundle
         run: |
           # 以 ARM64 版完整包作为模板
-          cp -R artifacts/macOS_arm64/VideoProcesser_macOS_arm64.app VideoProcesser.app
+          cp -R artifacts/macOS_arm64/VideoCropper_macOS_arm64.app VideoCropper.app
           # 用 lipo 合并两个架构的可执行文件，并覆盖 ARM64 包中的二进制文件
           lipo -create \
-            artifacts/macOS_arm64/VideoProcesser_macOS_arm64.app/Contents/MacOS/VideoProcesser_macOS_arm64 \
-            artifacts/macOS_x86_64/VideoProcesser_macOS_x86_64.app/Contents/MacOS/VideoProcesser_macOS_x86_64 \
-            -output VideoProcesser.app/Contents/MacOS/VideoProcesser
+            artifacts/macOS_arm64/VideoCropper_macOS_arm64.app/Contents/MacOS/VideoCropper_macOS_arm64 \
+            artifacts/macOS_x86_64/VideoCropper_macOS_x86_64.app/Contents/MacOS/VideoCropper_macOS_x86_64 \
+            -output VideoCropper.app/Contents/MacOS/VideoCropper
           # 如有需要，可重新签名
-          # sudo codesign --force --deep --sign - VideoProcesser.app
+          # sudo codesign --force --deep --sign - VideoCropper.app
 
       - name: Validate Merged App
         run: |
-          file VideoProcesser.app/Contents/MacOS/VideoProcesser | grep "Mach-O universal binary"
+          file VideoCropper.app/Contents/MacOS/VideoCropper | grep "Mach-O universal binary"
 
       - name: Create DMG
         run: |
-          if [ ! -d "VideoProcesser.app" ]; then
+          if [ ! -d "VideoCropper.app" ]; then
             echo "Error: Merged app not found!"
             exit 1
           fi
           # 使用临时目录，避免权限问题
           export TMPDIR=$(mktemp -d)
-          cp -R VideoProcesser.app "$TMPDIR/"
+          cp -R VideoCropper.app "$TMPDIR/"
           # 将 DMG 大小由 500m 增加到 1G，确保完整包能被包含
           hdiutil create -size 1g -fs HFS+ \
-            -volname "VideoProcesser Installer" \
-            -srcfolder "$TMPDIR/VideoProcesser.app" \
-            -ov -format UDZO VideoProcesser.dmg
+            -volname "VideoCropper Installer" \
+            -srcfolder "$TMPDIR/VideoCropper.app" \
+            -ov -format UDZO VideoCropper.dmg
           rm -rf "$TMPDIR"
       
       - uses: actions/upload-artifact@v4
         with:
           name: macOS_Universal
-          path: VideoProcesser.dmg
+          path: VideoCropper.dmg
 
   publish-release:
     needs: [build-windows, build-linux, create-dmg, build-macos]
@@ -352,10 +352,10 @@ jobs:
             - Linux x86/x64  
             - macOS Universal (ARM64 + Intel)
           files: |
-            artifacts/Windows_x86/VideoProcesser_Win_x86.exe
-            artifacts/Windows_x64/VideoProcesser_Win_x64.exe
-            artifacts/Linux_x86/VideoProcesser_Linux_x86
-            artifacts/Linux_x64/VideoProcesser_Linux_x64
+            artifacts/Windows_x86/VideoCropper_Win_x86.exe
+            artifacts/Windows_x64/VideoCropper_Win_x64.exe
+            artifacts/Linux_x86/VideoCropper_Linux_x86
+            artifacts/Linux_x64/VideoCropper_Linux_x64
             artifacts/macOS_Universal/*
             artifacts/macOS_arm64/*
             artifacts/macOS_x86_64/*
