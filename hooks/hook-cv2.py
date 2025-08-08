@@ -1,4 +1,5 @@
-from PyInstaller.utils.hooks import collect_dynamic_libs
+# hooks/hook-cv2.py
+from PyInstaller.utils.hooks import collect_data_files
 
-hiddenimports = ['cv2']
-binaries = collect_dynamic_libs('cv2')
+# 确保包含所有 OpenCV 数据文件
+datas = collect_data_files('cv2')

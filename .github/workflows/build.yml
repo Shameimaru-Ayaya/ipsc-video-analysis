@@ -91,6 +91,7 @@ jobs:
             --hidden-import "PyQt5.QtCore" `
             --hidden-import "PyQt5.QtGui" `
             --hidden-import "PyQt5.QtWidgets" `
+            --additional-hooks-dir=hooks `
             --icon assets/cut.ico `
             --name "VideoProcessor_Win_${{ matrix.arch }}" `
             video_processor_final.py
