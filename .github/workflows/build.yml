@@ -248,71 +248,59 @@ jobs:
           file dist/VideoProcessor_macOS_${{ matrix.arch }}.app/Contents/MacOS/VideoProcessor_macOS_${{ matrix.arch }} | grep "Mach-O"
 
   create-dmg:
-  needs: build-macos
-  runs-on: macos-latest
-  steps:
-    - name: Download ARM64 Artifact
-      uses: actions/download-artifact@v4
-      with:
-        pattern: macOS_arm64
-        path: artifacts/macOS_arm64
-        merge-multiple: true
+    needs: build-macos
+    runs-on: macos-latest
+    steps:
+      - name: Download ARM64 Artifact
+        uses: actions/download-artifact@v4
+        with:
+          pattern: macOS_arm64
+          path: artifacts/macOS_arm64
+          merge-multiple: true
 
-    - name: Download x86_64 Artifact
-      uses: actions/download-artifact@v4
-      with:
-        pattern: macOS_x86_64
-        path: artifacts/macOS_x86_64
-        merge-multiple: true
-    
-    - name: Create Universal App Bundle
-      run: |
-        cp -R artifacts/macOS_arm64/VideoProcessor_macOS_arm64.app VideoProcessor.app
-        lipo -create \
-          artifacts/macOS_arm64/VideoProcessor_macOS_arm64.app/Contents/MacOS/VideoProcessor_macOS_arm64 \
-          artifacts/macOS_x86_64/VideoProcessor_macOS_x86_64.app/Contents/MacOS/VideoProcessor_macOS_x86_64 \
-          -output VideoProcessor.app/Contents/MacOS/VideoProcessor
+      - name: Download x86_64 Artifact
+        uses: actions/download-artifact@v4
+        with:
+          pattern: macOS_x86_64
+          path: artifacts/macOS_x86_64
+          merge-multiple: true
+      
+      - name: Create Universal App Bundle
+        run: |
+          # 以 ARM64 版完整包作为模板
+          cp -R artifacts/macOS_arm64/VideoProcessor_macOS_arm64.app VideoProcessor.app
+          # 用 lipo 合并两个架构的可执行文件，并覆盖 ARM64 包中的二进制文件
+          lipo -create \
+            artifacts/macOS_arm64/VideoProcessor_macOS_arm64.app/Contents/MacOS/VideoProcessor_macOS_arm64 \
+            artifacts/macOS_x86_64/VideoProcessor_macOS_x86_64.app/Contents/MacOS/VideoProcessor_macOS_x86_64 \
+            -output VideoProcessor.app/Contents/MacOS/VideoProcessor
+          # 如有需要，可重新签名
+          # sudo codesign --force --deep --sign - VideoProcessor.app
 
-    - name: Validate Merged App
-      run: |
-        file VideoProcessor.app/Contents/MacOS/VideoProcessor | grep "Mach-O universal binary"
+      - name: Validate Merged App
+        run: |
+          file VideoProcessor.app/Contents/MacOS/VideoProcessor | grep "Mach-O universal binary"
 
-    - name: Create DMG
-      run: |
-        # 清理磁盘空间
-        echo "Before cleanup:"
-        df -h
-        sudo rm -rf /Users/runner/Library/Developer/Xcode/DerivedData/*
-        sudo rm -rf /Users/runner/Library/Caches/*
-        sudo rm -rf ~/Library/Developer/CoreSimulator/Devices/*
-        echo "After cleanup:"
-        df -h
-        
-        if [ ! -d "VideoProcessor.app" ]; then
-          echo "Error: Merged app not found!"
-          exit 1
-        fi
-        
-        # 创建更大的临时目录
-        export TMPDIR=$(mktemp -d /tmp/dmg.XXXXXX)
-        echo "Using temporary directory: $TMPDIR"
-        cp -R VideoProcessor.app "$TMPDIR/"
-        
-        # 使用更大的空间和ULFO格式
-        hdiutil create -size 2g -fs HFS+ \
-          -volname "VideoProcessor Installer" \
-          -srcfolder "$TMPDIR" \
-          -ov -format ULFO VideoProcessor.dmg
-        
-        # 清理临时文件
-        rm -rf "$TMPDIR"
-        echo "Disk space after DMG creation:"
-        df -h
-    
-    - uses: actions/upload-artifact@v4
-      with:
-        name: macOS_Universal
-        path: VideoProcessor.dmg
+      - name: Create DMG
+        run: |
+          if [ ! -d "VideoProcessor.app" ]; then
+            echo "Error: Merged app not found!"
+            exit 1
+          fi
+          # 使用临时目录，避免权限问题
+          export TMPDIR=$(mktemp -d)
+          cp -R VideoProcessor.app "$TMPDIR/"
+          # 将 DMG 大小由 500m 增加到 1G，确保完整包能被包含
+          hdiutil create -size 2g -fs HFS+ \
+            -volname "VideoProcessor Installer" \
+            -srcfolder "$TMPDIR/VideoProcessor.app" \
+            -ov -format UDZO VideoProcessor.dmg
+          rm -rf "$TMPDIR"
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macOS_Universal
+          path: VideoProcessor.dmg
 
   publish-release:
     needs: [build-windows, build-linux, create-dmg, build-macos]
