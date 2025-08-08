@@ -75,7 +75,7 @@ jobs:
       
       - name: Build EXE
         run: |
-          pyinstaller --noconfirm --onefile --windowed --debug all `
+          pyinstaller --noconfirm --onefile --windowed `
             --add-data "ffmpeg/win-${{ matrix.arch }}/ffmpeg.exe;." `
             --hidden-import "cv2" `
             --hidden-import "numpy" `
