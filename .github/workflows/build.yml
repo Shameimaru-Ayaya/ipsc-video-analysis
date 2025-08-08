@@ -81,7 +81,10 @@ jobs:
             --add-data "ffmpeg/win-${{ matrix.arch }}/ffmpeg.exe;." `
             --collect-all cv2 `
             --hidden-import "cv2" `
+            --collect-binaries numpy `
             --hidden-import "numpy" `
+            --hidden-import "numpy._core" `
+            --hidden-import "numpy._core._exceptions" `
             --hidden-import "pandas" `
             --hidden-import "plotly.graph_objects" `
             --hidden-import "scipy.ndimage" `
