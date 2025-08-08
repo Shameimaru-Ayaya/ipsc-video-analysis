@@ -70,7 +70,7 @@ jobs:
       
       - name: Install dependencies
         run: |
-          pip install pyinstaller == 5.13.0
+          pip install pyinstaller==5.13.0
           pip install -r requirements.txt
           pip install pywin32
           pip install opencv-python-headless==4.9.0.80
