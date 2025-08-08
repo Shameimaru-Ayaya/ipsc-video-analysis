@@ -1,44 +1,361 @@
-name: Build executables
+name: Multi-Platform Build and Release
 
 on:
   push:
-    branches: [main]
-  workflow_dispatch:
+    branches: [ main ]
+  release:
+    types: [ published ]
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
+#  prepare-deps:
+#    runs-on: ubuntu-latest
+#    outputs:
+#      win-x86-ffmpeg: ${{ steps.prepare.outputs.win-x86-path }}
+#      win-x64-ffmpeg: ${{ steps.prepare.outputs.win-x64-path }}
+#      linux-x86-ffmpeg: ${{ steps.prepare.outputs.linux-x86-path }}
+#      linux-x64-ffmpeg: ${{ steps.prepare.outputs.linux-x64-path }}
+#      mac-ffmpeg: ${{ steps.prepare.outputs.mac-path }}
+#    steps:
+#      - name: Prepare multi-arch FFmpeg
+#        id: prepare
+#        run: |
+#          mkdir -p ffmpeg/{win-x86,win-x64,linux-x86,linux-x64,mac}
+#
+#          # Windows架构分离
+#          wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x86.zip
+#          unzip -j ffmpeg-win-x86.zip "ffmpeg-*-essentials_build/bin/ffmpeg.exe" -d ffmpeg/win-x86/
+#          wget https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -O ffmpeg-win-x64.zip
+#          unzip -j ffmpeg-win-x64.zip "ffmpeg-*-essentials_build/bin/ffmpeg.exe" -d ffmpeg/win-x64/
+#
+#          # Linux架构分离
+#          wget https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-i686-static.tar.xz -O ffmpeg-linux-x86.tar.xz
+#          tar -xf ffmpeg-linux-x86.tar.xz --strip-components=1 -C ffmpeg/linux-x86/
+#          wget https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-amd64-static.tar.xz -O ffmpeg-linux-x64.tar.xz
+#          tar -xf ffmpeg-linux-x64.tar.xz --strip-components=1 -C ffmpeg/linux-x64/
+#
+#          # macOS（使用动态通配符）
+#          wget --trust-server-names -O ffmpeg-mac.zip "https://evermeet.cx/ffmpeg/get/ffmpeg/zip"
+#          unzip -j ffmpeg-mac.zip -d ffmpeg/mac/
+#
+#          echo "win-x86-path=ffmpeg/win-x86/ffmpeg.exe" >> $GITHUB_OUTPUT
+#          echo "win-x64-path=ffmpeg/win-x64/ffmpeg.exe" >> $GITHUB_OUTPUT
+#          echo "linux-x86-path=ffmpeg/linux-x86/ffmpeg" >> $GITHUB_OUTPUT
+#          echo "linux-x64-path=ffmpeg/linux-x64/ffmpeg" >> $GITHUB_OUTPUT
+#          # 移除 macOS 隔离属性
+#          if [ -f /usr/bin/xattr ]; then
+#            /usr/bin/xattr -dr com.apple.quarantine ffmpeg/mac/ffmpeg
+#          else
+#            echo "xattr not found, using fallback..."
+#            mv ffmpeg/mac/ffmpeg ffmpeg/mac/ffmpeg.bin
+#            chmod +x ffmpeg/mac/ffmpeg.bin
+#          fi
+#          echo "mac-path=ffmpeg/mac/ffmpeg" >> $GITHUB_OUTPUT
+
+  build-windows:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-
+        arch: [x86, x64]
+    runs-on: windows-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Verify FFmpeg Exists
+        run: dir ffmpeg\win-${{ matrix.arch }}\ffmpeg.exe
+      
+      - name: Setup Python (${{ matrix.arch }})
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
-
-      - name: Install PyInstaller and all dependencies
+          python-version: '3.11'
+          architecture: ${{ matrix.arch == 'x86' && 'x86' || 'x64' }}
+      
+      - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install \
-            pyinstaller \
-            opencv-python-headless \
-            numpy \
-            pandas \
-            plotly \
-            scipy \
-            PyQt5
-
-      - name: Build executable with PyInstaller
+          pip install -r requirements.txt
+          pip install pywin32
+      
+      - name: Build EXE
         run: |
-          pyinstaller --noconfirm --onefile --windowed video_processer_final.py
-
-      - name: Upload executable
-        uses: actions/upload-artifact@v4
+          pyinstaller --noconfirm --onefile --windowed `
+            --add-data "ffmpeg/win-${{ matrix.arch }}/ffmpeg.exe;." `
+            --hidden-import "cv2" `
+            --hidden-import "numpy" `
+            --hidden-import "pandas" `
+            --hidden-import "plotly.graph_objects" `
+            --hidden-import "scipy.ndimage" `
+            --hidden-import "PyQt5.QtCore" `
+            --hidden-import "PyQt5.QtGui" `
+            --hidden-import "PyQt5.QtWidgets" `
+            --icon assets/cut.ico `
+            --name "VideoProcesser_Win_${{ matrix.arch }}" `
+            video_processer_final.py
+      
+      - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}-video-processer
-          path: dist/video_processer_final*
+          name: Windows_${{ matrix.arch }}
+          path: dist/
+
+  build-linux:
+    strategy:
+      matrix:
+        arch: [x86, x64]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify FFmpeg
+        run: |
+          ls ffmpeg/linux-${{ matrix.arch }}/ffmpeg
+          chmod +x ffmpeg/linux-${{ matrix.arch }}/ffmpeg
+      
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1 libglx0 libsm6 libxext6 mesa-utils xvfb
+          echo "DISPLAY=:99" >> $GITHUB_ENV
+      
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install pyinstaller
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Start Xvfb
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+
+      - name: Verify OpenGL
+        run: |
+          xvfb-run -a glxinfo | grep "OpenGL version"
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Build AppImage
+        run: |
+          xvfb-run -a pyinstaller --noconfirm --onefile \
+            --add-data "ffmpeg/linux-${{ matrix.arch }}/ffmpeg:." \
+            --hidden-import cv2 \
+            --hidden-import numpy \
+            --hidden-import pandas \
+            --hidden-import plotly.graph_objects \
+            --hidden-import scipy.ndimage \
+            --hidden-import PyQt5.QtCore \
+            --hidden-import PyQt5.QtGui \
+            --hidden-import PyQt5.QtWidgets \
+            --name VideoProcesser_Linux_${{ matrix.arch }} \
+            video_processer_final.py
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Linux_${{ matrix.arch }}
+          path: dist/
+
+  build-macos:
+    strategy:
+      matrix:
+        arch: [arm64, x86_64]
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify FFmpeg
+        run: |
+          ls ffmpeg/mac/ffmpeg
+          chmod +x ffmpeg/mac/ffmpeg
+          if [ -f /usr/bin/xattr ]; then
+            /usr/bin/xattr -dr com.apple.quarantine ffmpeg/mac/ffmpeg
+          else
+            mv ffmpeg/mac/ffmpeg ffmpeg/mac/ffmpeg.bin
+            chmod +x ffmpeg/mac/ffmpeg.bin
+          fi
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install Dependencies
+        run: |
+          if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
+            arch -x86_64 pip uninstall opencv-python
+            arch -x86_64 pip install pyinstaller build setuptools wheel opencv-python pyqt5
+          else
+            pip uninstall opencv-python
+            pip install pyinstaller build setuptools wheel opencv-python pyqt5
+          fi
+
+      - name: Build macOS Bundle
+        run: |
+          if [[ "${{ matrix.arch }}" == "x86_64" ]]; then
+            arch -x86_64 pyinstaller --noconfirm --windowed \
+              --add-data "ffmpeg/mac/ffmpeg:." \
+              --hidden-import cv2 \
+              --hidden-import numpy \
+              --hidden-import pandas \
+              --hidden-import plotly.graph_objects \
+              --hidden-import scipy.ndimage \
+              --hidden-import PyQt5.QtCore \
+              --hidden-import PyQt5.QtGui \
+              --hidden-import PyQt5.QtWidgets \
+              --collect-all cv2 \
+              --paths /opt/homebrew/opt/python@3.9/libexec/bin \
+              --osx-bundle-identifier io.KirisameMarisa-DAZE.videocropper \
+              --icon assets/cut.icns \
+              --additional-hooks-dir=hooks \
+              --osx-entitlements-file entitlements.plist \
+              --name VideoProcesser_macOS_x86_64 \
+              video_processer_final.py
+          else
+            pyinstaller --noconfirm --windowed \
+              --add-data "ffmpeg/mac/ffmpeg:." \
+              --hidden-import cv2 \
+              --hidden-import numpy \
+              --hidden-import pandas \
+              --hidden-import plotly.graph_objects \
+              --hidden-import scipy.ndimage \
+              --hidden-import PyQt5.QtCore \
+              --hidden-import PyQt5.QtGui \
+              --hidden-import PyQt5.QtWidgets \
+              --collect-all cv2 \
+              --paths /opt/homebrew/opt/python@3.9/libexec/bin \
+              --osx-bundle-identifier io.KirisameMarisa-DAZE.videocropper \
+              --icon assets/cut.icns \
+              --additional-hooks-dir=hooks \
+              --osx-entitlements-file entitlements.plist \
+              --name VideoProcesser_macOS_arm64 \
+              video_processer_final.py
+          fi
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macOS_${{ matrix.arch }}
+          path: dist/
+
+      - name: Verify App Structure
+        run: |
+          test -f dist/VideoProcesser_macOS_${{ matrix.arch }}.app/Contents/Info.plist || exit 1
+          test -f dist/VideoProcesser_macOS_${{ matrix.arch }}.app/Contents/MacOS/VideoProcesser_macOS_${{ matrix.arch }} || exit 1
+          file dist/VideoProcesser_macOS_${{ matrix.arch }}.app/Contents/MacOS/VideoProcesser_macOS_${{ matrix.arch }} | grep "Mach-O"
+
+  create-dmg:
+    needs: build-macos
+    runs-on: macos-latest
+    steps:
+      - name: Download ARM64 Artifact
+        uses: actions/download-artifact@v4
+        with:
+          pattern: macOS_arm64
+          path: artifacts/macOS_arm64
+          merge-multiple: true
+
+      - name: Download x86_64 Artifact
+        uses: actions/download-artifact@v4
+        with:
+          pattern: macOS_x86_64
+          path: artifacts/macOS_x86_64
+          merge-multiple: true
+      
+      - name: Create Universal App Bundle
+        run: |
+          # 以 ARM64 版完整包作为模板
+          cp -R artifacts/macOS_arm64/VideoProcesser_macOS_arm64.app VideoProcesser.app
+          # 用 lipo 合并两个架构的可执行文件，并覆盖 ARM64 包中的二进制文件
+          lipo -create \
+            artifacts/macOS_arm64/VideoProcesser_macOS_arm64.app/Contents/MacOS/VideoProcesser_macOS_arm64 \
+            artifacts/macOS_x86_64/VideoProcesser_macOS_x86_64.app/Contents/MacOS/VideoProcesser_macOS_x86_64 \
+            -output VideoProcesser.app/Contents/MacOS/VideoProcesser
+          # 如有需要，可重新签名
+          # sudo codesign --force --deep --sign - VideoProcesser.app
+
+      - name: Validate Merged App
+        run: |
+          file VideoProcesser.app/Contents/MacOS/VideoProcesser | grep "Mach-O universal binary"
+
+      - name: Create DMG
+        run: |
+          if [ ! -d "VideoProcesser.app" ]; then
+            echo "Error: Merged app not found!"
+            exit 1
+          fi
+          # 使用临时目录，避免权限问题
+          export TMPDIR=$(mktemp -d)
+          cp -R VideoProcesser.app "$TMPDIR/"
+          # 将 DMG 大小由 500m 增加到 1G，确保完整包能被包含
+          hdiutil create -size 1g -fs HFS+ \
+            -volname "VideoProcesser Installer" \
+            -srcfolder "$TMPDIR/VideoProcesser.app" \
+            -ov -format UDZO VideoProcesser.dmg
+          rm -rf "$TMPDIR"
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macOS_Universal
+          path: VideoProcesser.dmg
+
+  publish-release:
+    needs: [build-windows, build-linux, create-dmg, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Windows_x86
+          path: artifacts/Windows_x86
+          
+      - name: Download Windows x64
+        uses: actions/download-artifact@v4
+        with:
+          name: Windows_x64
+          path: artifacts/Windows_x64
+
+      - name: Download Linux Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: Linux_x86
+          path: artifacts/Linux_x86
+      - name: Download Linux x64
+        uses: actions/download-artifact@v4
+        with:
+          name: Linux_x64
+          path: artifacts/Linux_x64
+
+      - name: Download macOS Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: macOS_Universal
+          path: artifacts/macOS_Universal
+
+      - name: Download macOS arm64
+        uses: actions/download-artifact@v4
+        with:
+          name: macOS_arm64
+          path: artifacts/macOS_arm64
+
+      - name: Download macOS
+        uses: actions/download-artifact@v4
+        with:
+          pattern: macOS_x86_64
+          path: artifacts/macOS_x86_64
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          body: |
+            Multi-arch build containing:
+            - Windows x86/x64
+            - Linux x86/x64  
+            - macOS Universal (ARM64 + Intel)
+          files: |
+            artifacts/Windows_x86/VideoProcesser_Win_x86.exe
+            artifacts/Windows_x64/VideoProcesser_Win_x64.exe
+            artifacts/Linux_x86/VideoProcesser_Linux_x86
+            artifacts/Linux_x64/VideoProcesser_Linux_x64
+            artifacts/macOS_Universal/*
+            artifacts/macOS_arm64/*
+            artifacts/macOS_x86_64/*
