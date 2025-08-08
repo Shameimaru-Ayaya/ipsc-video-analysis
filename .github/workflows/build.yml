@@ -79,7 +79,7 @@ jobs:
             --add-data "ffmpeg/win-${{ matrix.arch }}/ffmpeg.exe;." `
             --hidden-import "cv2" `
             --hidden-import "numpy" `
-            --hidden-import "pandas" `
+            --collect-all pandas `
             --hidden-import "plotly.graph_objects" `
             --hidden-import "scipy.ndimage" `
             --hidden-import "PyQt5.QtCore" `
@@ -138,7 +138,7 @@ jobs:
             --add-data "ffmpeg/linux-${{ matrix.arch }}/ffmpeg:." \
             --hidden-import cv2 \
             --hidden-import numpy \
-            --hidden-import pandas \
+            --collect-all pandas \
             --hidden-import plotly.graph_objects \
             --hidden-import scipy.ndimage \
             --hidden-import PyQt5.QtCore \
@@ -193,7 +193,7 @@ jobs:
               --add-data "ffmpeg/mac/ffmpeg:." \
               --hidden-import cv2 \
               --hidden-import numpy \
-              --hidden-import pandas \
+              --collect-all pandas \
               --hidden-import plotly.graph_objects \
               --hidden-import scipy.ndimage \
               --hidden-import PyQt5.QtCore \
@@ -212,7 +212,7 @@ jobs:
               --add-data "ffmpeg/mac/ffmpeg:." \
               --hidden-import cv2 \
               --hidden-import numpy \
-              --hidden-import pandas \
+              --collect-all pandas \
               --hidden-import plotly.graph_objects \
               --hidden-import scipy.ndimage \
               --hidden-import PyQt5.QtCore \
