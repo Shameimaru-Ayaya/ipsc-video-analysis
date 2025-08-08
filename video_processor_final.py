@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Jan 13 12:16:50 2025
+Updated on Thu Aug 08 12:00:00 2025
 
 @author: Github@Shameimaru-Ayaya
 """
@@ -19,13 +20,236 @@ from PyQt5.QtGui import QImage, QPixmap, QPainter, QPen
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QLabel, QPushButton,
                            QFileDialog, QVBoxLayout, QWidget, QProgressBar, QSlider,
                            QHBoxLayout, QComboBox, QAction, QMessageBox, QDialog,
-                           QSpinBox, QGridLayout, QDialogButtonBox)
+                           QSpinBox, QGridLayout, QDialogButtonBox, QActionGroup)
 
-# --- 新增：ROI微调对话框 ---
-class RoiTuningDialog(QDialog):
-    def __init__(self, initial_roi, max_width, max_height, parent=None):
+# --- 新增：多语言翻译字典 ---
+TRANSLATIONS = {
+    'zh': {
+        # 窗口标题
+        'window_title': '视频处理工具',
+        'roi_tuning_title': 'ROI 微调',
+        'about_title': '关于',
+        'lang_select_title': '选择语言',
+
+        # 主界面文本
+        'video_label_default': '拖放视频文件到这里，或点击选择文件',
+        'select_output_dir_btn': '选择输出目录',
+        'reselect_video_btn': '重新选择视频',
+        'overflow_combo_no': '目标不溢出边界',
+        'overflow_combo_yes': '目标溢出边界',
+        'debug_output_combo_no': '不输出调试信息',
+        'debug_output_combo_yes': '输出调试信息',
+        'intermediate_frames_combo_no': '不输出中间帧',
+        'intermediate_frames_combo_yes': '输出中间帧',
+        'process_btn_start': '开始处理',
+        'process_btn_stop': '终止处理',
+        'speed_label_template': '处理速度: {speed_text}',
+        'remaining_time_label_template': '预计剩余时间: {time_text}',
+        'status_label_ready': '就绪',
+        'status_label_select_roi': '请选择ROI区域',
+        'status_label_roi_selected': 'ROI已选择，可以开始处理',
+        'status_label_output_dir': '输出目录: {dir_path}',
+        'status_label_processing': '正在处理...',
+        'status_label_stopped': '处理已终止',
+        'status_label_finished': '处理完成！已保存到: {result}',
+        'status_label_error_roi': '错误：开始处理前必须选择一个有效的ROI区域！',
+        'status_label_error_generic': '错误: {error_message}',
+        'progress_label_template': '处理进度: {value}%',
+        'speed_calculating': '计算中...',
+        'time_calculating': '计算中...',
+        'time_placeholder': '--:--',
+        'fps_unit': '{fps:.2f} 帧/秒',
+        'spf_unit': '{spf:.2f} 秒/帧',
+
+        # 菜单
+        'menu_file': '文件(&F)',
+        'menu_file_open': '打开视频(&O)',
+        'menu_file_output_dir': '选择输出目录(&D)',
+        'menu_file_exit': '退出(&X)',
+        'menu_edit': '编辑(&E)',
+        'menu_edit_roi': 'ROI 微调(&R)',
+        'menu_help': '帮助(&H)',
+        'menu_help_about': '关于(&A)',
+        'menu_language': '语言(&L)',
+
+        # 对话框
+        'about_dialog_text': '视频处理工具\n版本 2.3.0\n作者: Github@Shameimaru-Ayaya',
+        'select_video_dialog_title': '选择视频文件',
+        'video_files_filter': '视频文件 (*.mp4 *.avi *.mov *.mkv)',
+        'select_output_dir_dialog_title': '选择输出目录',
+        'roi_dialog_x': 'X 坐标:',
+        'roi_dialog_y': 'Y 坐标:',
+        'roi_dialog_w': '宽度 (W):',
+        'roi_dialog_h': '高度 (H):',
+    },
+    'en': {
+        # Window Titles
+        'window_title': 'Video Processing Tool',
+        'roi_tuning_title': 'ROI Fine-tuning',
+        'about_title': 'About',
+        'lang_select_title': 'Select Language',
+
+        # Main UI Text
+        'video_label_default': 'Drag & Drop video file here, or click to select file',
+        'select_output_dir_btn': 'Select Output Directory',
+        'reselect_video_btn': 'Reselect Video',
+        'overflow_combo_no': 'Target within bounds',
+        'overflow_combo_yes': 'Target overflows bounds',
+        'debug_output_combo_no': 'Disable debug output',
+        'debug_output_combo_yes': 'Enable debug output',
+        'intermediate_frames_combo_no': 'No intermediate frames',
+        'intermediate_frames_combo_yes': 'Output intermediate frames',
+        'process_btn_start': 'Start Processing',
+        'process_btn_stop': 'Stop Processing',
+        'speed_label_template': 'Processing Speed: {speed_text}',
+        'remaining_time_label_template': 'Est. time remaining: {time_text}',
+        'status_label_ready': 'Ready',
+        'status_label_select_roi': 'Please select an ROI',
+        'status_label_roi_selected': 'ROI selected, ready to process',
+        'status_label_output_dir': 'Output directory: {dir_path}',
+        'status_label_processing': 'Processing...',
+        'status_label_stopped': 'Processing stopped',
+        'status_label_finished': 'Processing finished! Saved to: {result}',
+        'status_label_error_roi': 'Error: A valid ROI must be selected before starting!',
+        'status_label_error_generic': 'Error: {error_message}',
+        'progress_label_template': 'Progress: {value}%',
+        'speed_calculating': 'Calculating...',
+        'time_calculating': 'Calculating...',
+        'time_placeholder': '--:--',
+        'fps_unit': '{fps:.2f} fps',
+        'spf_unit': '{spf:.2f} s/frame',
+
+        # Menus
+        'menu_file': '&File',
+        'menu_file_open': '&Open Video',
+        'menu_file_output_dir': 'Select &Output Directory',
+        'menu_file_exit': 'E&xit',
+        'menu_edit': '&Edit',
+        'menu_edit_roi': '&ROI Fine-tuning',
+        'menu_help': '&Help',
+        'menu_help_about': '&About',
+        'menu_language': '&Language',
+
+        # Dialogs
+        'about_dialog_text': 'Video Processing Tool\nVersion 2.3.0\nAuthor: Github@Shameimaru-Ayaya',
+        'select_video_dialog_title': 'Select Video File',
+        'video_files_filter': 'Video Files (*.mp4 *.avi *.mov *.mkv)',
+        'select_output_dir_dialog_title': 'Select Output Directory',
+        'roi_dialog_x': 'X coordinate:',
+        'roi_dialog_y': 'Y coordinate:',
+        'roi_dialog_w': 'Width (W):',
+        'roi_dialog_h': 'Height (H):',
+    },
+    'ja': {
+        # Window Titles
+        'window_title': 'ビデオ処理ツール',
+        'roi_tuning_title': 'ROI 微調整',
+        'about_title': 'バージョン情報',
+        'lang_select_title': '言語を選択',
+
+        # Main UI Text
+        'video_label_default': 'ここにビデオファイルをドラッグ＆ドロップするか、クリックしてファイルを選択',
+        'select_output_dir_btn': '出力先を選択',
+        'reselect_video_btn': 'ビデオを再選択',
+        'overflow_combo_no': 'ターゲットは境界内',
+        'overflow_combo_yes': 'ターゲットは境界外',
+        'debug_output_combo_no': 'デバッグ情報を出力しない',
+        'debug_output_combo_yes': 'デバッグ情報を出力する',
+        'intermediate_frames_combo_no': '中間フレームを保存しない',
+        'intermediate_frames_combo_yes': '中間フレームを保存する',
+        'process_btn_start': '処理開始',
+        'process_btn_stop': '処理停止',
+        'speed_label_template': '処理速度: {speed_text}',
+        'remaining_time_label_template': '予想残り時間: {time_text}',
+        'status_label_ready': '準備完了',
+        'status_label_select_roi': 'ROI領域を選択してください',
+        'status_label_roi_selected': 'ROI選択済み、処理を開始できます',
+        'status_label_output_dir': '出力先: {dir_path}',
+        'status_label_processing': '処理中...',
+        'status_label_stopped': '処理が停止しました',
+        'status_label_finished': '処理完了！保存先: {result}',
+        'status_label_error_roi': 'エラー：処理を開始する前に、有効なROI領域を選択する必要があります！',
+        'status_label_error_generic': 'エラー: {error_message}',
+        'progress_label_template': '進捗: {value}%',
+        'speed_calculating': '計算中...',
+        'time_calculating': '計算中...',
+        'time_placeholder': '--:--',
+        'fps_unit': '{fps:.2f} フレーム/秒',
+        'spf_unit': '{spf:.2f} 秒/フレーム',
+
+        # Menus
+        'menu_file': 'ファイル(&F)',
+        'menu_file_open': 'ビデオを開く(&O)',
+        'menu_file_output_dir': '出力先を選択(&D)',
+        'menu_file_exit': '終了(&X)',
+        'menu_edit': '編集(&E)',
+        'menu_edit_roi': 'ROI 微調整(&R)',
+        'menu_help': 'ヘルプ(&H)',
+        'menu_help_about': 'バージョン情報(&A)',
+        'menu_language': '言語(&L)',
+
+        # Dialogs
+        'about_dialog_text': 'ビデオ処理ツール\nバージョン 2.3.0\n作者: Github@Shameimaru-Ayaya',
+        'select_video_dialog_title': 'ビデオファイルを選択',
+        'video_files_filter': 'ビデオファイル (*.mp4 *.avi *.mov *.mkv)',
+        'select_output_dir_dialog_title': '出力先を選択',
+        'roi_dialog_x': 'X 座標:',
+        'roi_dialog_y': 'Y 座標:',
+        'roi_dialog_w': '幅 (W):',
+        'roi_dialog_h': '高さ (H):',
+    }
+}
+
+
+# --- 新增：启动时语言选择对话框 ---
+class LanguageSelectionDialog(QDialog):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle('ROI 微调')
+        self.setWindowTitle('Select Language / 选择语言 / 言語を選択')
+        self.selected_language = None
+        
+        layout = QVBoxLayout(self)
+        
+        label = QLabel('Please select your preferred language:')
+        label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(label)
+        
+        buttons_layout = QHBoxLayout()
+        
+        en_btn = QPushButton('English')
+        en_btn.clicked.connect(lambda: self.select_lang('en'))
+        
+        zh_btn = QPushButton('简体中文 (Simplified Chinese)')
+
+        zh_btn.clicked.connect(lambda: self.select_lang('zh'))
+        
+        ja_btn = QPushButton('日本語 (Japanese)')
+        ja_btn.clicked.connect(lambda: self.select_lang('ja'))
+        
+        buttons_layout.addWidget(en_btn)
+        buttons_layout.addWidget(zh_btn)
+        buttons_layout.addWidget(ja_btn)
+        
+        layout.addLayout(buttons_layout)
+        self.setFixedSize(self.sizeHint())
+
+    def select_lang(self, lang):
+        self.selected_language = lang
+        self.accept()
+
+    @staticmethod
+    def get_language(parent=None):
+        dialog = LanguageSelectionDialog(parent)
+        dialog.exec_()
+        return dialog.selected_language
+
+
+# --- 修改：ROI微调对话框以支持多语言 ---
+class RoiTuningDialog(QDialog):
+    def __init__(self, initial_roi, max_width, max_height, parent=None, translations=None):
+        super().__init__(parent)
+        t = translations if translations else {}
+        self.setWindowTitle(t.get('title', 'ROI Fine-tuning'))
         
         layout = QGridLayout(self)
         
@@ -48,13 +272,13 @@ class RoiTuningDialog(QDialog):
         self.h_spinbox.setValue(initial_roi.height())
 
         # 添加到布局
-        layout.addWidget(QLabel('X 坐标:'), 0, 0)
+        layout.addWidget(QLabel(t.get('x', 'X coordinate:')), 0, 0)
         layout.addWidget(self.x_spinbox, 0, 1)
-        layout.addWidget(QLabel('Y 坐标:'), 1, 0)
+        layout.addWidget(QLabel(t.get('y', 'Y coordinate:')), 1, 0)
         layout.addWidget(self.y_spinbox, 1, 1)
-        layout.addWidget(QLabel('宽度 (W):'), 2, 0)
+        layout.addWidget(QLabel(t.get('w', 'Width (W):')), 2, 0)
         layout.addWidget(self.w_spinbox, 2, 1)
-        layout.addWidget(QLabel('高度 (H):'), 3, 0)
+        layout.addWidget(QLabel(t.get('h', 'Height (H):')), 3, 0)
         layout.addWidget(self.h_spinbox, 3, 1)
 
         # 添加OK和Cancel按钮
@@ -81,7 +305,7 @@ class VideoLabel(QLabel):
     def __init__(self):
         super().__init__()
         self.setAlignment(Qt.AlignCenter)
-        self.setText('拖放视频文件到这里，或点击选择文件')
+        # 文本将在MainWindow的retranslate_ui中设置
         self.setMinimumSize(640, 480)
         self.drag_mode = None
         self.start_point = QPoint()
@@ -91,7 +315,7 @@ class VideoLabel(QLabel):
         self.display_rect = QRect()
         self.pen = QPen(Qt.red, 2, Qt.SolidLine)
         self.setMouseTracking(True)
-        self.setAcceptDrops(True)  # 启用拖放功能
+        self.setAcceptDrops(True)
 
     def set_video_frame(self, pixmap, original_size):
         self.original_size = original_size
@@ -102,7 +326,7 @@ class VideoLabel(QLabel):
         x = (self.width() - pw) // 2
         y = (self.height() - ph) // 2
         self.display_rect = QRect(x, y, pw, ph)
-        self.update() # 确保在加载新视频时重绘
+        self.update()
 
     def get_scaled_roi(self):
         if self.original_size.width() == 0 or self.original_size.height() == 0 or self.permanent_roi.isNull():
@@ -163,7 +387,6 @@ class VideoLabel(QLabel):
             self.drag_mode = 'create'
             self.start_point = event.pos() - self.display_rect.topLeft()
             self.current_roi = QRect(self.start_point, self.start_point)
-            # 在开始创建时清除旧的ROI
             self.permanent_roi = QRect()
             self.roi_selected.emit(self.permanent_roi)
 
@@ -259,7 +482,7 @@ class VideoProcessor(QThread):
     def __init__(self, video_path, output_dir, roi, threshold=0.5, variance_threshold=5, is_overflow=False, debug_output=False, output_intermediate_frames=False):
         super().__init__()
         self.video_path = video_path
-        self.base_output_dir = output_dir  # 保存原始输出目录作为基础目录
+        self.base_output_dir = output_dir
         self.roi_x, self.roi_y, self.roi_width, self.roi_height = roi
         self.threshold = threshold
         self.variance_threshold = variance_threshold
@@ -270,18 +493,15 @@ class VideoProcessor(QThread):
         self.debug_output = debug_output
         self.output_intermediate_frames = output_intermediate_frames
 
-        # 获取视频文件名（不含扩展名）作为输出目录名
         video_filename = os.path.splitext(os.path.basename(video_path))[0]
         self.output_dir = os.path.join(self.base_output_dir, video_filename)
 
-        # 创建输出目录结构
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
 
         if not self.cap.isOpened():
             raise ValueError(f"无法打开视频文件: {self.video_path}")
 
-        # 先初始化视频属性
         self.fps = self.cap.get(cv2.CAP_PROP_FPS)
         self.total_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.output_video_path = os.path.join(self.output_dir, "processed_output.mp4")
@@ -289,13 +509,11 @@ class VideoProcessor(QThread):
         self.video_writer = cv2.VideoWriter(self.output_video_path, fourcc, self.fps,
                                           (int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
                                            int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))))
-        self.processing_times = []  # 用于存储每帧处理时间
+        self.processing_times = []
         
-        # 记录初始化参数
         self._log_command(f"INIT {self.video_path}", f"ROI: {roi}, 阈值: {threshold}, 溢出模式: {is_overflow}")
 
         if self.debug_output:
-            # 创建调试输出目录（作为二级子文件夹）
             self.debug_dir = os.path.join(self.output_dir, "debug_output")
             self.debug_frames_dir = os.path.join(self.debug_dir, "frames")
             self.debug_videos_dir = os.path.join(self.debug_dir, "videos")
@@ -303,11 +521,9 @@ class VideoProcessor(QThread):
             os.makedirs(self.debug_frames_dir, exist_ok=True)
             os.makedirs(self.debug_videos_dir, exist_ok=True)
             
-            # 创建日志文件
             log_path = os.path.join(self.debug_dir, "process.log")
             cmd_path = os.path.join(self.debug_dir, "commands.log")
             
-            # 检查日志文件是否已存在，如果存在则使用追加模式
             if os.path.exists(log_path):
                 self.log_file = open(log_path, "a")
                 self._log_info("\n" + "="*50 + "\n")
@@ -315,31 +531,26 @@ class VideoProcessor(QThread):
             else:
                 self.log_file = open(log_path, "w")
                 
-            # 检查命令文件是否已存在，如果存在则使用追加模式
             if os.path.exists(cmd_path):
                 self.cmd_file = open(cmd_path, "a")
                 self.cmd_file.write("\n" + "="*50 + "\n")
             else:
                 self.cmd_file = open(cmd_path, "w")
 
-            # 记录初始化参数
             self._log_command("INIT", f"视频: {self.video_path}, ROI: {roi}, 阈值: {threshold}, 溢出模式: {is_overflow}")
 
-            # 输出系统信息
             self._log_info("系统信息:")
             self._log_info(f"Python版本: {sys.version}")
             self._log_info(f"OpenCV版本: {cv2.__version__}")
             self._log_info(f"NumPy版本: {np.__version__}")
             self._log_info(f"Pandas版本: {pd.__version__}")
             
-            # 输出视频信息
             self._log_info("视频信息:")
             self._log_info(f"路径: {self.video_path}")
             self._log_info(f"帧率: {self.fps}")
             self._log_info(f"总帧数: {self.total_frames}")
             self._log_info(f"分辨率: {int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x{int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))}")
             
-            # 输出处理参数
             self._log_info("处理参数:")
             self._log_info(f"ROI: ({self.roi_x}, {self.roi_y}, {self.roi_width}, {self.roi_height})")
             self._log_info(f"频率变化阈值: {self.threshold}")
@@ -347,16 +558,12 @@ class VideoProcessor(QThread):
             self._log_info(f"溢出模式: {self.is_overflow}")
 
     def process_frame(self, frame: np.ndarray, frame_index: int) -> np.ndarray:
-        # 记录开始时间
         start_time = time.time()
         
-        # 创建调试帧列表（如果启用调试输出）
         debug_frames = [] if self.debug_output else None
         
-        # 记录处理开始
         self._log_info(f"开始处理第 {frame_index} 帧")
             
-        # 检查帧是否为空
         if frame is None or frame.size == 0:
             self._log_error(f"第 {frame_index} 帧为空或无效")
             return np.zeros((480, 640, 3), dtype=np.uint8)
@@ -366,13 +573,11 @@ class VideoProcessor(QThread):
             self._log_debug(f"帧尺寸: {frame.shape}")
             
         try:
-            # 转换为HSV空间
             hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
             if self.debug_output:
                 debug_frames.append(("HSV", hsv_frame))
                 self._log_debug("已转换为HSV空间")
             
-            # 创建掩膜，识别黑色区域
             lower_black = np.array([0, 0, 0])
             upper_black = np.array([180, 255, 50])
             mask = cv2.inRange(hsv_frame, lower_black, upper_black)
@@ -380,7 +585,6 @@ class VideoProcessor(QThread):
                 debug_frames.append(("mask", cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)))
                 self._log_debug(f"掩膜统计: 黑色像素数量: {np.sum(mask > 0)}")
             
-            # 形态学操作改进：先进行开运算去噪，再进行闭运算填充小孔
             kernel = np.ones((5, 5), np.uint8)
             opening = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
             if self.debug_output:
@@ -389,14 +593,11 @@ class VideoProcessor(QThread):
             if self.debug_output:
                 debug_frames.append(("closing", cv2.cvtColor(closing, cv2.COLOR_GRAY2BGR)))
             
-            # 使用中值滤波
             median = cv2.medianBlur(closing, 5)
             if self.debug_output:
                 debug_frames.append(("median", cv2.cvtColor(median, cv2.COLOR_GRAY2BGR)))
             
-            # 根据溢出标志决定是否进行边缘检测
             if not self.is_overflow:
-                # 边缘检测
                 edges = cv2.Canny(median, 50, 150)
                 roi_source = edges
                 if self.debug_output:
@@ -404,45 +605,36 @@ class VideoProcessor(QThread):
             else:
                 roi_source = median
                 
-            # 创建彩色显示图像
             display_frame = frame.copy()
             
-            # 改进后的ROI处理部分
             try:
-                # 计算扩展后的ROI边界（不扩展超过图像范围）
                 expanded_x1 = max(0, self.roi_x - 1)
                 expanded_y1 = max(0, self.roi_y - 1)
                 expanded_x2 = min(frame.shape[1], self.roi_x + self.roi_width + 1)
                 expanded_y2 = min(frame.shape[0], self.roi_y + self.roi_height + 1)
         
-                # 提取扩展后的ROI区域
                 roi_expanded = roi_source[expanded_y1:expanded_y2, expanded_x1:expanded_x2]
                 
                 if roi_expanded.size == 0:
                     self._log_warning(f"警告：扩展ROI区域为空，帧索引：{frame_index}")
                     return frame
         
-                # 创建原始ROI对应的掩膜（不包含扩展区域）
                 mask = np.zeros_like(roi_expanded)
                 original_in_expanded_x = self.roi_x - expanded_x1
                 original_in_expanded_y = self.roi_y - expanded_y1
                 mask[original_in_expanded_y:original_in_expanded_y+self.roi_height,
                      original_in_expanded_x:original_in_expanded_x+self.roi_width] = 255
         
-                # 应用掩膜（仅保留原始ROI范围内的区域）
                 roi_masked = cv2.bitwise_and(roi_expanded, roi_expanded, mask=mask.astype(np.uint8))
                 
-                # 进行边界填充以保持轮廓闭合
                 padded_roi = cv2.copyMakeBorder(roi_masked, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=0)
                 
             except Exception as e:
                 self._log_warning(f"ROI提取错误：{str(e)}，帧索引：{frame_index}")
                 return frame
                 
-            # 改进后的轮廓处理部分
             contours, _ = cv2.findContours(padded_roi, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
             
-            # 调整轮廓坐标时考虑边界填充和扩展区域
             adjusted_contours = []
             for contour in contours:
                 adjusted_contour = contour.copy()
@@ -450,17 +642,14 @@ class VideoProcessor(QThread):
                 adjusted_contour[:,:,1] += (expanded_y1 - 1)
                 adjusted_contours.append(adjusted_contour)
             
-            # 添加更多的错误检查和处理
             try:
                 if adjusted_contours:
-                    # 先检查是否有轮廓
                     contour_areas = [cv2.contourArea(cnt) for cnt in adjusted_contours]
                     valid_contours = [cnt for i, cnt in enumerate(adjusted_contours) if contour_areas[i] > 100]
                     
                     if valid_contours:
                         max_contour = max(valid_contours, key=cv2.contourArea)
                         
-                        # 绘制最大轮廓
                         cv2.drawContours(display_frame, [max_contour], -1, (0, 255, 0), 2)
                         
                         M = cv2.moments(max_contour)
@@ -483,23 +672,18 @@ class VideoProcessor(QThread):
                 self._log_warning(f"轮廓处理错误：{str(e)}，帧索引：{frame_index}")
                 self.displacements.append((0, 0))
             
-            # 如果启用调试输出，保存调试图像
-            if self.debug_output and debug_frames:  # 添加空列表检查
+            if self.debug_output and debug_frames:
                 self._save_debug_frame(debug_frames, frame_index)
                 
-                # 创建轮廓显示图像
                 contour_image = np.zeros_like(frame)
                 if adjusted_contours:
                     cv2.drawContours(contour_image, adjusted_contours, -1, (0, 255, 0), 2)
                 debug_frames.append(("contours", contour_image))
                 
-                # 添加最终处理结果图像
                 debug_frames.append(("result", display_frame.copy()))
                 
-                # 再次保存包含所有图像的调试帧
                 self._save_debug_frame(debug_frames, frame_index)
             
-            # 计算处理时间并更新平均速度
             process_time = time.time() - start_time
             self.processing_times.append(process_time)
             avg_time = sum(self.processing_times) / len(self.processing_times)
@@ -514,11 +698,9 @@ class VideoProcessor(QThread):
             self._log_error(traceback.format_exc())
             return frame
         
-        # 如果启用调试输出，保存调试图像
         if self.debug_output and debug_frames:
             self._save_debug_frame(debug_frames, frame_index)
         
-        # 计算处理时间并更新平均速度
         process_time = time.time() - start_time
         self.processing_times.append(process_time)
         avg_time = sum(self.processing_times) / len(self.processing_times)
@@ -630,7 +812,7 @@ class VideoProcessor(QThread):
             x=[i / self.fps for i in range(len(smoothed_displacements))],
             y=smoothed_displacements,
             mode='lines',
-            name='平滑位移',
+            name='Smoothed Displacement', # Plotly text is not easily translated, keep as English
             line=dict(color='blue', width=1)
         ))
 
@@ -640,14 +822,14 @@ class VideoProcessor(QThread):
                 x=[change_time],
                 y=[smoothed_displacements[peaks[change]]],
                 mode='markers',
-                name=f'频率变化点 {i+1}',
+                name=f'Frequency Change Point {i+1}',
                 marker=dict(color='red', size=10)
             ))
 
         fig.update_layout(
-            title='位移和频率变化分析',
-            xaxis_title='时间 (秒)',
-            yaxis_title='位移',
+            title='Displacement and Frequency Change Analysis',
+            xaxis_title='Time (s)',
+            yaxis_title='Displacement',
             showlegend=True
         )
         
@@ -664,11 +846,10 @@ class VideoProcessor(QThread):
         try:
             frame_index = 0
             while True:
-                # 检查是否被终止
                 if self.isInterruptionRequested():
                     self._log_info("处理被用户终止")
                     self._log_command("STOP_PROCESSING", "用户手动终止")
-                    self.finished.emit("处理被用户终止")
+                    self.finished.emit("处理被用户终止") # Note: This message will be handled by MainWindow but not translated here.
                     return
                     
                 ret, frame = self.cap.read()
@@ -682,16 +863,13 @@ class VideoProcessor(QThread):
                     self._log_error(f"处理第 {frame_index} 帧时发生错误: {str(e)}")
                     import traceback
                     self._log_error(traceback.format_exc())
-                    # 继续处理下一帧，而不是中断整个处理
-                    self.video_writer.write(frame)  # 写入原始帧
+                    self.video_writer.write(frame)
                 
-                # 更新进度
                 progress = int((frame_index + 1) / self.total_frames * 100)
                 self.progress_updated.emit(progress)
                 
                 frame_index += 1
                 
-            # 处理完成后的分析
             self._log_info("视频处理完成，开始分析波形...")
             self._log_command("ANALYZE_WAVEFORM", "开始波形分析")
             
@@ -723,7 +901,6 @@ class VideoProcessor(QThread):
             self._log_error(traceback.format_exc())
             self.finished.emit(f"错误: {str(e)}")
         finally:
-            # 释放资源
             try:
                 if hasattr(self, 'cap') and self.cap:
                     self.cap.release()
@@ -738,7 +915,6 @@ class VideoProcessor(QThread):
                 print(f"释放资源时发生错误: {str(e)}")
 
     def _log_info(self, message):
-        """记录信息级别的日志"""
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         log_message = f"[INFO] {timestamp}: {message}"
         print(log_message)
@@ -747,7 +923,6 @@ class VideoProcessor(QThread):
             self.log_file.flush()
             
     def _log_command(self, command, description=""):
-        """记录命令到命令日志文件"""
         if not self.debug_output or not hasattr(self, 'cmd_file'):
             return
             
@@ -760,7 +935,6 @@ class VideoProcessor(QThread):
         self.cmd_file.flush()
 
     def _log_warning(self, message):
-        """记录警告级别的日志"""
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         log_message = f"[WARNING] {timestamp}: {message}"
         print(log_message)
@@ -769,7 +943,6 @@ class VideoProcessor(QThread):
             self.log_file.flush()
 
     def _log_error(self, message):
-        """记录错误级别的日志"""
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
         log_message = f"[ERROR] {timestamp}: {message}"
         print(log_message)
@@ -778,7 +951,6 @@ class VideoProcessor(QThread):
             self.log_file.flush()
 
     def _log_debug(self, message):
-        """记录调试级别的日志，仅在调试模式下输出"""
         if self.debug_output:
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
             log_message = f"[DEBUG] {timestamp}: {message}"
@@ -788,36 +960,28 @@ class VideoProcessor(QThread):
                 self.log_file.flush()
 
     def _save_debug_frame(self, debug_frames, frame_index):
-        """保存调试帧"""
         if not self.debug_output or not debug_frames:
             return
             
-        # 如果不输出中间帧，则完全不保存任何单帧图像
         if not self.output_intermediate_frames:
             return
             
         try:
-            # 创建调试帧目录
             frame_dir = os.path.join(self.debug_frames_dir, f"frame_{frame_index:06d}")
             os.makedirs(frame_dir, exist_ok=True)
             
-            # 保存每个调试图像
             for name, img in debug_frames:
-                # 确保图像是彩色的
-                if len(img.shape) == 2:  # 灰度图像
+                if len(img.shape) == 2:
                     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
                 
-                # 保存图像
                 output_path = os.path.join(frame_dir, f"{name}.png")
                 cv2.imwrite(output_path, img)
                 
-            # 记录到日志
             self._log_warning(f"已保存帧 {frame_index} 的调试图像到 {frame_dir}")
         except Exception as e:
             self._log_warning(f"保存调试帧时出错: {str(e)}")
 
     def __del__(self):
-        """清理资源"""
         if hasattr(self, 'debug_output') and self.debug_output:
             if hasattr(self, 'log_file'):
                 self.log_file.close()
@@ -825,18 +989,29 @@ class VideoProcessor(QThread):
                 self.cmd_file.close()
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, language='zh'):
         super().__init__()
-        self.setWindowTitle('视频处理工具')
+        self.lang = language
         self.video_path = ''
         self.output_dir = os.path.expanduser('~/Desktop')
-        self.video_processor = None  # 添加video_processor属性初始化
-        self.speed_label = QLabel('平均处理时间: 0.00 ms/帧')
-        self.permanent_roi = None  # 添加ROI属性
+        self.video_processor = None
+        self.permanent_roi = None
+        
         self.init_ui()
-        self._create_menu_bar() # 创建菜单栏
+        self.retranslate_ui() # 设置所有UI文本的初始语言
+
+    def tr(self, key, **kwargs):
+        """获取并格式化翻译文本"""
+        text = TRANSLATIONS[self.lang].get(key, key)
+        if kwargs:
+            try:
+                return text.format(**kwargs)
+            except (KeyError, IndexError):
+                return text
+        return text
 
     def init_ui(self):
+        # 仅创建控件，文本在 retranslate_ui 中设置
         self.video_label = VideoLabel()
         self.video_label.roi_selected.connect(self.update_roi)
         self.video_label.clicked.connect(self.select_video_file)
@@ -846,70 +1021,57 @@ class MainWindow(QMainWindow):
         self.progress_label = QLabel()
         self.progress_label.hide()
 
-        self.status_label = QLabel('就绪')
+        self.status_label = QLabel()
         self.time_label = QLabel('00:00/00:00')
 
-        # 创建水平布局来放置文件操作按钮
         file_buttons_layout = QHBoxLayout()
-        
-        self.select_dir_btn = QPushButton('选择输出目录')
+        self.select_dir_btn = QPushButton()
         self.select_dir_btn.clicked.connect(self.select_output_dir)
-        
-        self.select_video_btn = QPushButton('重新选择视频')
+        self.select_video_btn = QPushButton()
         self.select_video_btn.clicked.connect(self.select_video_file)
         self.select_video_btn.setEnabled(False)
-        
         file_buttons_layout.addWidget(self.select_dir_btn)
-        file_buttons_layout.addStretch()  # 添加弹性空间，将重新选择视频按钮推到最右侧
+        file_buttons_layout.addStretch()
         file_buttons_layout.addWidget(self.select_video_btn)
 
-        # 创建水平布局来放置选项按钮
         options_layout = QHBoxLayout()
-        
-        # 添加目标溢出选择按钮
         self.overflow_combo = QComboBox()
-        self.overflow_combo.addItems(['目标不溢出边界', '目标溢出边界'])
         self.overflow_combo.setFixedWidth(150)
         self.overflow_combo.setStyleSheet("QComboBox { text-align: center; }")
         
-        # 添加调试输出选择按钮
         self.debug_output_combo = QComboBox()
-        self.debug_output_combo.addItems(['不输出调试信息', '输出调试信息'])
         self.debug_output_combo.setFixedWidth(150)
         self.debug_output_combo.setStyleSheet("QComboBox { text-align: center; }")
         self.debug_output_combo.currentIndexChanged.connect(self.update_intermediate_frames_combo_state)
         
-        # 添加中间帧输出选择按钮
         self.intermediate_frames_combo = QComboBox()
-        self.intermediate_frames_combo.addItems(['不输出中间帧', '输出中间帧'])
         self.intermediate_frames_combo.setFixedWidth(150)
         self.intermediate_frames_combo.setStyleSheet("QComboBox { text-align: center; }")
-        self.intermediate_frames_combo.setEnabled(False)  # 默认不可用
+        self.intermediate_frames_combo.setEnabled(False)
         
         options_layout.addWidget(self.overflow_combo)
-        options_layout.addStretch()  # 添加弹性空间，将调试输出按钮推到右侧
+        options_layout.addStretch()
         options_layout.addWidget(self.debug_output_combo)
         options_layout.addWidget(self.intermediate_frames_combo)
         
-        # 创建水平布局来放置处理速度和预计剩余时间
         speed_layout = QHBoxLayout()
-        self.speed_label = QLabel('处理速度: 0.00 秒/帧')
-        self.remaining_time_label = QLabel('预计剩余时间: --:--')
+        self.speed_label = QLabel()
+        self.remaining_time_label = QLabel()
         speed_layout.addWidget(self.speed_label)
         speed_layout.addStretch()
         speed_layout.addWidget(self.remaining_time_label)
         
-        self.process_btn = QPushButton('开始处理')
+        self.process_btn = QPushButton()
         self.process_btn.setEnabled(False)
         self.process_btn.clicked.connect(self.toggle_processing)
         
         control_layout = QVBoxLayout()
-        control_layout.addLayout(file_buttons_layout)  # 文件操作按钮布局
-        control_layout.addLayout(options_layout)  # 选项按钮布局
+        control_layout.addLayout(file_buttons_layout)
+        control_layout.addLayout(options_layout)
         control_layout.addWidget(self.process_btn)
         control_layout.addWidget(self.progress_bar)
         control_layout.addWidget(self.progress_label)
-        control_layout.addLayout(speed_layout)  # 处理速度和剩余时间布局
+        control_layout.addLayout(speed_layout)
         control_layout.addWidget(self.status_label)
 
         main_layout = QVBoxLayout()
@@ -920,113 +1082,178 @@ class MainWindow(QMainWindow):
         container.setLayout(main_layout)
         self.setCentralWidget(container)
         
-    def _create_menu_bar(self):
-        menu_bar = self.menuBar()
+        # 创建菜单栏和动作，文本在 retranslate_ui 中设置
+        self._create_menu_bar_actions()
 
-        # 文件菜单
-        file_menu = menu_bar.addMenu('文件')
+    def _create_menu_bar_actions(self):
+        self.menu_bar = self.menuBar()
+        self.file_menu = self.menu_bar.addMenu('')
+        self.open_action = QAction('', self)
+        self.open_action.triggered.connect(self.select_video_file)
+        self.output_dir_action = QAction('', self)
+        self.output_dir_action.triggered.connect(self.select_output_dir)
+        self.exit_action = QAction('', self)
+        self.exit_action.triggered.connect(self.close)
 
-        open_action = QAction('打开视频', self)
-        open_action.triggered.connect(self.select_video_file)
-        file_menu.addAction(open_action)
-
-        output_dir_action = QAction('选择输出目录', self)
-        output_dir_action.triggered.connect(self.select_output_dir)
-        file_menu.addAction(output_dir_action)
-
-        file_menu.addSeparator()
-
-        exit_action = QAction('退出', self)
-        exit_action.triggered.connect(self.close)
-        file_menu.addAction(exit_action)
-
-        # 编辑菜单
-        edit_menu = menu_bar.addMenu('编辑')
-
-        # --- 新增：ROI 微调菜单项 ---
-        self.fine_tune_roi_action = QAction('ROI 微调', self)
+        self.edit_menu = self.menu_bar.addMenu('')
+        self.fine_tune_roi_action = QAction('', self)
         self.fine_tune_roi_action.triggered.connect(self.open_roi_tuning_dialog)
-        self.fine_tune_roi_action.setEnabled(False) # 默认禁用
-        edit_menu.addAction(self.fine_tune_roi_action)
+        self.fine_tune_roi_action.setEnabled(False)
 
-        # 帮助菜单
-        help_menu = menu_bar.addMenu('帮助')
+        self.help_menu = self.menu_bar.addMenu('')
+        self.about_action = QAction('', self)
+        self.about_action.triggered.connect(self.show_about_dialog)
+        
+        # 语言菜单
+        self.lang_menu = self.menu_bar.addMenu('')
+        self.lang_action_group = QActionGroup(self)
+        self.lang_action_group.setExclusive(True)
 
-        about_action = QAction('关于', self)
-        about_action.triggered.connect(self.show_about_dialog)
-        help_menu.addAction(about_action)
+        self.en_action = QAction('English', self, checkable=True)
+        self.en_action.triggered.connect(lambda: self.change_language('en'))
+        self.zh_action = QAction('简体中文', self, checkable=True)
+        self.zh_action.triggered.connect(lambda: self.change_language('zh'))
+        self.ja_action = QAction('日本語', self, checkable=True)
+        self.ja_action.triggered.connect(lambda: self.change_language('ja'))
+
+    def retranslate_ui(self):
+        """更新所有UI元素的文本"""
+        self.setWindowTitle(self.tr('window_title'))
+
+        # 标签
+        if not self.video_path:
+             self.video_label.setText(self.tr('video_label_default'))
+        speed_text = self.tr('time_placeholder')
+        self.speed_label.setText(self.tr('speed_label_template', speed_text=speed_text))
+        self.remaining_time_label.setText(self.tr('remaining_time_label_template', time_text=self.tr('time_placeholder')))
+        self.status_label.setText(self.tr('status_label_ready'))
+        self.progress_label.setText(self.tr('progress_label_template', value=0))
+
+        # 按钮
+        self.select_dir_btn.setText(self.tr('select_output_dir_btn'))
+        self.select_video_btn.setText(self.tr('reselect_video_btn'))
+        if self.video_processor and self.video_processor.isRunning():
+            self.process_btn.setText(self.tr('process_btn_stop'))
+        else:
+            self.process_btn.setText(self.tr('process_btn_start'))
+            
+        # ComboBoxes - 保存并恢复当前索引
+        for combo, keys in [
+            (self.overflow_combo, ['overflow_combo_no', 'overflow_combo_yes']),
+            (self.debug_output_combo, ['debug_output_combo_no', 'debug_output_combo_yes']),
+            (self.intermediate_frames_combo, ['intermediate_frames_combo_no', 'intermediate_frames_combo_yes'])
+        ]:
+            current_index = combo.currentIndex()
+            combo.clear()
+            combo.addItems([self.tr(key) for key in keys])
+            combo.setCurrentIndex(current_index)
+            
+        # 菜单栏
+        self.file_menu.setTitle(self.tr('menu_file'))
+        self.file_menu.clear()
+        self.open_action.setText(self.tr('menu_file_open'))
+        self.output_dir_action.setText(self.tr('menu_file_output_dir'))
+        self.exit_action.setText(self.tr('menu_file_exit'))
+        self.file_menu.addAction(self.open_action)
+        self.file_menu.addAction(self.output_dir_action)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(self.exit_action)
+
+        self.edit_menu.setTitle(self.tr('menu_edit'))
+        self.edit_menu.clear()
+        self.fine_tune_roi_action.setText(self.tr('menu_edit_roi'))
+        self.edit_menu.addAction(self.fine_tune_roi_action)
+
+        self.help_menu.setTitle(self.tr('menu_help'))
+        self.help_menu.clear()
+        self.about_action.setText(self.tr('menu_help_about'))
+        self.help_menu.addAction(self.about_action)
+
+        self.lang_menu.setTitle(self.tr('menu_language'))
+        self.lang_menu.clear()
+        self.lang_action_group.removeAction(self.en_action)
+        self.lang_action_group.removeAction(self.zh_action)
+        self.lang_action_group.removeAction(self.ja_action)
+        self.lang_menu.addAction(self.en_action)
+        self.lang_menu.addAction(self.zh_action)
+        self.lang_menu.addAction(self.ja_action)
+        self.lang_action_group.addAction(self.en_action)
+        self.lang_action_group.addAction(self.zh_action)
+        self.lang_action_group.addAction(self.ja_action)
+        
+        if self.lang == 'en': self.en_action.setChecked(True)
+        elif self.lang == 'zh': self.zh_action.setChecked(True)
+        elif self.lang == 'ja': self.ja_action.setChecked(True)
+
+    def change_language(self, lang_code):
+        self.lang = lang_code
+        self.retranslate_ui()
 
     def show_about_dialog(self):
-        QMessageBox.about(self, '关于', '视频处理工具\n版本 2.2.0\n作者: Github@Shameimaru-Ayaya')
+        QMessageBox.about(self, self.tr('about_title'), self.tr('about_dialog_text'))
 
     def select_video_file(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, '选择视频文件', '',
-                                                 '视频文件 (*.mp4 *.avi *.mov *.mkv)')
+        file_path, _ = QFileDialog.getOpenFileName(self, self.tr('select_video_dialog_title'), '',
+                                                 self.tr('video_files_filter'))
         if file_path:
             self.load_video(file_path)
 
     def load_video(self, file_path):
         self.video_path = file_path
-        self.permanent_roi = None # 加载新视频时重置ROI
+        self.permanent_roi = None
         cap = cv2.VideoCapture(file_path)
         if cap.isOpened():
             ret, frame = cap.read()
             if ret:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 h, w, ch = frame.shape
-                bytes_per_line = ch * w
-                q_img = QImage(frame.data, w, h, bytes_per_line, QImage.Format_RGB888)
-                pixmap = QPixmap.fromImage(q_img)
-                self.video_label.set_video_frame(pixmap, QSize(w, h))
+                q_img = QImage(frame.data, w, h, ch * w, QImage.Format_RGB888)
+                self.video_label.set_video_frame(QPixmap.fromImage(q_img), QSize(w, h))
                 
                 self.select_video_btn.setEnabled(True)
-                self.process_btn.setEnabled(False) # 加载视频后需要先选择ROI才能处理
-                self.status_label.setText('请选择ROI区域')
-                self.fine_tune_roi_action.setEnabled(True) # --- 修改：加载视频后启用菜单 ---
+                self.process_btn.setEnabled(False)
+                self.status_label.setText(self.tr('status_label_select_roi'))
+                self.fine_tune_roi_action.setEnabled(True)
             cap.release()
 
     def select_output_dir(self):
-        dir_path = QFileDialog.getExistingDirectory(self, '选择输出目录', self.output_dir)
+        dir_path = QFileDialog.getExistingDirectory(self, self.tr('select_output_dir_dialog_title'), self.output_dir)
         if dir_path:
             self.output_dir = dir_path
-            self.status_label.setText(f'输出目录: {dir_path}')
+            self.status_label.setText(self.tr('status_label_output_dir', dir_path=dir_path))
 
     def update_roi(self, roi):
         self.permanent_roi = roi
-        self.video_label.permanent_roi = roi # 确保VideoLabel中的ROI也更新
-        self.video_label.update() # 强制重绘
+        self.video_label.permanent_roi = roi
+        self.video_label.update()
         if roi and not roi.isNull() and roi.isValid():
-             self.process_btn.setEnabled(True)  # 选择有效ROI后启用处理按钮
-             self.status_label.setText('ROI已选择，可以开始处理')
+             self.process_btn.setEnabled(True)
+             self.status_label.setText(self.tr('status_label_roi_selected'))
         else:
              self.process_btn.setEnabled(False)
-             self.status_label.setText('请选择有效的ROI区域')
+             self.status_label.setText(self.tr('status_label_select_roi'))
 
-    # --- 新增：打开ROI微调对话框的方法 ---
     def open_roi_tuning_dialog(self):
         video_size = self.video_label.original_size
-        if not video_size.isValid():
-            return # 如果没有视频，则不执行任何操作
+        if not video_size.isValid(): return
 
-        # 确定初始ROI
-        if self.permanent_roi and not self.permanent_roi.isNull():
-            initial_roi = self.permanent_roi
-        else:
-            # 如果没有设置ROI，则默认为整个视频画面
-            initial_roi = QRect(0, 0, video_size.width(), video_size.height())
+        initial_roi = self.permanent_roi if self.permanent_roi and not self.permanent_roi.isNull() else QRect(0, 0, video_size.width(), video_size.height())
 
-        # 创建并执行对话框
-        dialog = RoiTuningDialog(initial_roi, video_size.width(), video_size.height(), self)
+        dialog_translations = {
+            'title': self.tr('roi_tuning_title'),
+            'x': self.tr('roi_dialog_x'),
+            'y': self.tr('roi_dialog_y'),
+            'w': self.tr('roi_dialog_w'),
+            'h': self.tr('roi_dialog_h'),
+        }
+        dialog = RoiTuningDialog(initial_roi, video_size.width(), video_size.height(), self, translations=dialog_translations)
         if dialog.exec_() == QDialog.Accepted:
-            new_roi = dialog.get_roi()
-            self.update_roi(new_roi) # 使用新ROI更新主窗口
+            self.update_roi(dialog.get_roi())
             
     def update_intermediate_frames_combo_state(self, index):
-        # 当选择输出调试信息时(index=1)，启用中间帧下拉菜单
         self.intermediate_frames_combo.setEnabled(index == 1)
 
     def toggle_processing(self):
-        # 如果当前正在处理，则终止处理
         if hasattr(self, 'video_processor') and self.video_processor and self.video_processor.isRunning():
             self.stop_processing()
         else:
@@ -1035,62 +1262,53 @@ class MainWindow(QMainWindow):
     def stop_processing(self):
         try:
             if hasattr(self, 'video_processor') and self.video_processor:
-                # 终止处理线程
-                self.video_processor.terminate()
+                self.video_processor.requestInterruption()
                 self.video_processor.wait()
                 
-                # 恢复UI状态
-                self.process_btn.setText('开始处理')
-                self.process_btn.setEnabled(True)
-                self.select_video_btn.setEnabled(True)
-                self.select_dir_btn.setEnabled(True)
-                self.progress_bar.hide()
-                self.progress_label.hide()
-                self.status_label.setText('处理已终止')
-                self.remaining_time_label.setText('预计剩余时间: --:--')
+            self.process_btn.setText(self.tr('process_btn_start'))
+            self.process_btn.setEnabled(True)
+            self.select_video_btn.setEnabled(True)
+            self.select_dir_btn.setEnabled(True)
+            self.progress_bar.hide()
+            self.progress_label.hide()
+            self.status_label.setText(self.tr('status_label_stopped'))
+            self.remaining_time_label.setText(self.tr('remaining_time_label_template', time_text=self.tr('time_placeholder')))
         except Exception as e:
             self.handle_error(f"终止处理时发生错误: {str(e)}")
 
     def start_processing(self):
         if not self.video_path or not self.permanent_roi or self.permanent_roi.isNull():
-            self.status_label.setText("错误：开始处理前必须选择一个有效的ROI区域！")
+            self.status_label.setText(self.tr('status_label_error_roi'))
             return
             
         try:
-            is_overflow = self.overflow_combo.currentText() == '目标溢出边界'
-            debug_output = self.debug_output_combo.currentText() == '输出调试信息'
-            output_intermediate_frames = self.intermediate_frames_combo.currentText() == '输出中间帧' and debug_output
+            is_overflow = self.overflow_combo.currentIndex() == 1
+            debug_output = self.debug_output_combo.currentIndex() == 1
+            output_intermediate_frames = self.intermediate_frames_combo.currentIndex() == 1 and debug_output
             
-            # 将 QRect 对象转换为元组 (x, y, width, height)
             roi_tuple = (self.permanent_roi.x(), self.permanent_roi.y(), 
                          self.permanent_roi.width(), self.permanent_roi.height())
             
             self.video_processor = VideoProcessor(
-                self.video_path, 
-                self.output_dir, 
-                roi_tuple,  # 使用转换后的元组
-                is_overflow=is_overflow,
-                debug_output=debug_output,
+                self.video_path, self.output_dir, roi_tuple, 
+                is_overflow=is_overflow, debug_output=debug_output,
                 output_intermediate_frames=output_intermediate_frames
             )
             self.video_processor.progress_updated.connect(self.update_progress)
             self.video_processor.finished.connect(self.processing_finished)
-            self.video_processor.speed_updated.connect(self.update_speed)  # 连接速度更新信号
+            self.video_processor.speed_updated.connect(self.update_speed)
             
-            # 更改按钮文本和状态
-            self.process_btn.setText('终止处理')
+            self.process_btn.setText(self.tr('process_btn_stop'))
             self.select_video_btn.setEnabled(False)
             self.select_dir_btn.setEnabled(False)
             self.progress_bar.setValue(0)
             self.progress_bar.show()
             self.progress_label.show()
-            self.status_label.setText('正在处理...')
+            self.status_label.setText(self.tr('status_label_processing'))
             
-            # 重置处理时间和剩余时间显示
-            self.speed_label.setText('处理速度: 计算中...')
-            self.remaining_time_label.setText('预计剩余时间: 计算中...')
+            self.speed_label.setText(self.tr('speed_label_template', speed_text=self.tr('speed_calculating')))
+            self.remaining_time_label.setText(self.tr('remaining_time_label_template', time_text=self.tr('time_calculating')))
             
-            # 记录开始时间和已处理帧数，用于计算剩余时间
             self.processing_start_time = time.time()
             self.processed_frames = 0
             
@@ -1099,12 +1317,10 @@ class MainWindow(QMainWindow):
             self.handle_error(f"启动处理时发生错误: {str(e)}")
 
     def update_progress(self, value):
-        """更新进度条、进度标签和预计剩余时间"""
         try:
             self.progress_bar.setValue(value)
-            self.progress_label.setText(f'处理进度: {value}%')
+            self.progress_label.setText(self.tr('progress_label_template', value=value))
             
-            # 计算预计剩余时间
             if hasattr(self, 'video_processor') and self.video_processor:
                 total_frames = self.video_processor.total_frames
                 self.processed_frames = int(total_frames * value / 100)
@@ -1116,11 +1332,10 @@ class MainWindow(QMainWindow):
                     if frames_per_second > 0:
                         remaining_frames = total_frames - self.processed_frames
                         remaining_seconds = remaining_frames / frames_per_second
-                        
-                        # 格式化为分:秒
                         minutes = int(remaining_seconds // 60)
                         seconds = int(remaining_seconds % 60)
-                        self.remaining_time_label.setText(f'预计剩余时间: {minutes:02d}:{seconds:02d}')
+                        time_text = f'{minutes:02d}:{seconds:02d}'
+                        self.remaining_time_label.setText(self.tr('remaining_time_label_template', time_text=time_text))
             
             if not self.progress_bar.isVisible():
                 self.progress_bar.show()
@@ -1130,19 +1345,14 @@ class MainWindow(QMainWindow):
 
     def update_speed(self, avg_time):
         try:
-            # 将毫秒转换为秒
             avg_time_sec = avg_time / 1000.0
-            
-            # 计算帧率（帧/秒）
             fps = 1.0 / avg_time_sec if avg_time_sec > 0 else 0
             
-            # 根据帧率选择合适的显示单位
             if fps > 1.0:
-                # 帧率大于1，显示为帧/秒
-                self.speed_label.setText(f'处理速度: {fps:.2f} 帧/秒')
+                speed_text = self.tr('fps_unit', fps=fps)
             else:
-                # 帧率小于1，显示为秒/帧
-                self.speed_label.setText(f'处理速度: {avg_time_sec:.2f} 秒/帧')
+                speed_text = self.tr('spf_unit', spf=avg_time_sec)
+            self.speed_label.setText(self.tr('speed_label_template', speed_text=speed_text))
         except Exception as e:
             self.handle_error(f"更新速度时发生错误: {str(e)}")
     
@@ -1150,30 +1360,41 @@ class MainWindow(QMainWindow):
         try:
             self.progress_bar.hide()
             self.progress_label.hide()
-            self.process_btn.setText('开始处理')
+            self.process_btn.setText(self.tr('process_btn_start'))
             self.process_btn.setEnabled(True)
             self.select_video_btn.setEnabled(True)
             self.select_dir_btn.setEnabled(True)
-            self.remaining_time_label.setText('预计剩余时间: --:--')
+            self.remaining_time_label.setText(self.tr('remaining_time_label_template', time_text=self.tr('time_placeholder')))
 
             if result.startswith('错误'):
-                self.status_label.setText(result)
+                self.status_label.setText(result) # 保持原始错误信息
+            elif result.startswith('Error'):
+                self.status_label.setText(result) # 保持原始错误信息
+            elif result == '处理被用户终止':
+                self.status_label.setText(self.tr('status_label_stopped'))
             else:
-                self.status_label.setText(f'处理完成！已保存到: {result}')
+                self.status_label.setText(self.tr('status_label_finished', result=result))
         except Exception as e:
             self.handle_error(f"处理完成回调时发生错误: {str(e)}")
 
     def handle_error(self, error_message):
         """全局错误处理函数"""
         print(f"[ERROR] {error_message}")
-        self.status_label.setText(f"错误: {error_message}")
+        self.status_label.setText(self.tr('status_label_error_generic', error_message=error_message))
         
-        # 如果启用了调试输出，记录到日志文件
         if hasattr(self, 'video_processor') and self.video_processor and self.video_processor.debug_output:
             self.video_processor._log_error(error_message)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
+    
+    # 启动时显示语言选择对话框
+    selected_lang = LanguageSelectionDialog.get_language()
+    
+    if selected_lang:
+        window = MainWindow(language=selected_lang)
+        window.show()
+        sys.exit(app.exec_())
+    else:
+        # 如果用户关闭了语言选择对话框，则退出程序
+        sys.exit(0)
