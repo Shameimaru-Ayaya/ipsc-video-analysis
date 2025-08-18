@@ -79,7 +79,6 @@ jobs:
         run: |
           pyinstaller --noconfirm --onefile --windowed `
             --add-data "ffmpeg/win-${{ matrix.arch }}/ffmpeg.exe;." `
-            --add-data "%CONDA_PREFIX%/Lib/site-packages/cv2/config.py;cv2" `
             --collect-binaries numpy `
             --hidden-import "numpy" `
             --hidden-import "numpy._core" `
