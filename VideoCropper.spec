@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+datas = collect_data_files('cv2')
 
 a = Analysis(
     ['cut.py'],
