@@ -79,8 +79,6 @@ jobs:
         run: |
           pyinstaller --noconfirm --onefile --windowed `
             --add-data "ffmpeg/win-${{ matrix.arch }}/ffmpeg.exe;." `
-            --collect-all cv2 `
-            --hidden-import "cv2" `
             --collect-binaries numpy `
             --hidden-import "numpy" `
             --hidden-import "numpy._core" `
