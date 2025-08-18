@@ -1,6 +1,8 @@
 # hooks/hook-cv2.py
-from PyInstaller.utils.hooks import copy_metadata
+from PyInstaller.utils.hooks import collect_submodules, collect_data_files
 
-# 告诉 PyInstaller 复制 opencv-python 包的所有元数据（metadata）文件。
-# 这其中就包括了它运行时需要的 config.py 和其他重要数据。
-datas = copy_metadata('opencv-python')
+# 收集所有 cv2 的子模块
+hiddenimports = collect_submodules('cv2')
+
+# 收集 cv2 的数据文件（包含 config.py 等）
+datas = collect_data_files('cv2')

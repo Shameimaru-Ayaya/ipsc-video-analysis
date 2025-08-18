@@ -79,7 +79,6 @@ jobs:
         run: |
           pyinstaller --noconfirm --onefile --windowed `
             --add-data "ffmpeg/win-${{ matrix.arch }}/ffmpeg.exe;." `
-            --collect-data cv2 `
             --collect-binaries numpy `
             --hidden-import "numpy" `
             --hidden-import "numpy._core" `
@@ -90,7 +89,7 @@ jobs:
             --hidden-import "PyQt5.QtCore" `
             --hidden-import "PyQt5.QtGui" `
             --hidden-import "PyQt5.QtWidgets" `
-            --additional-hooks-dir=hooks `
+            --additional-hooks-dir=./hooks `
             --icon assets/cut.ico `
             --name "VideoProcessor_Win_${{ matrix.arch }}" `
             video_processor_final.py
