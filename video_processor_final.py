@@ -9,6 +9,22 @@ Updated on Thu Aug 08 12:00:00 2025
 
 import sys
 import os
+
+# 解决打包后OpenCV配置缺失问题
+if getattr(sys, 'frozen', False):
+    cv2_data_dir = os.path.join(sys._MEIPASS, 'cv2')
+    if not os.path.exists(os.path.join(cv2_data_dir, 'config.py')):
+        # 尝试从不同位置加载
+        possible_paths = [
+            os.path.join(sys._MEIPASS, 'cv2', 'config.py'),
+            os.path.join(sys._MEIPASS, 'config.py')
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                opencv_dir = os.path.dirname(path)
+                sys.path.insert(0, opencv_dir)
+                break
+
 import cv2
 import time
 import numpy as np

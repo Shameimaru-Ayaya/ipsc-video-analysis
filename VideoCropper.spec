@@ -5,7 +5,7 @@ from PyInstaller.utils.hooks import collect_data_files
 datas = collect_data_files('cv2')
 
 a = Analysis(
-    ['cut.py'],
+    ['video_processor_final.py'],
     pathex=[],
     binaries=[],
     datas=datas,
