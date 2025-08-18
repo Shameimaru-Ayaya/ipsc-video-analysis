@@ -70,23 +70,16 @@ jobs:
       
       - name: Install dependencies
         run: |
-          pip uninstall -y opencv-python opencv-python-headless
           pip install pyinstaller==5.13.0
           pip install -r requirements.txt
           pip install pywin32
           pip install opencv-python-headless==4.9.0.80
       
-      - name: Clean PyInstaller cache
-        run: |
-          pyinstaller --clean
-          rm -rf __pycache__ build dist
-
       - name: Build EXE
         run: |
-          $configPath = python -c "import cv2, os; print(os.path.join(os.path.dirname(cv2.__file__), 'config.py'))"
           pyinstaller --noconfirm --onefile --windowed `
             --add-data "ffmpeg/win-${{ matrix.arch }}/ffmpeg.exe;." `
-            --add-data "$configPath;cv2"
+            --add-data "%CONDA_PREFIX%/Lib/site-packages/cv2/config.py;cv2"
             --collect-binaries numpy `
             --hidden-import "numpy" `
             --hidden-import "numpy._core" `
