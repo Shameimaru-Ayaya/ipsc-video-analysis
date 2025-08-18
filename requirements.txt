@@ -5,3 +5,4 @@ scipy==1.13.1
 PyQt5==5.15.10
 pyinstaller==5.13.1 # 也可以放在这里
 pywin32==306; sys_platform == 'win32' # Windows特定依赖
+opencv-python==4.5.3.56
