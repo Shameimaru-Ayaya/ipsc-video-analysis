@@ -1,6 +1,6 @@
 numpy==1.26.4
 pandas==2.2.2
-opencv-python-headless==4.9.0.80  # 统一使用带GUI的版本
+opencv-python==4.9.0.80
 plotly==5.22.0
 scipy==1.13.1
 PyQt5==5.15.10
